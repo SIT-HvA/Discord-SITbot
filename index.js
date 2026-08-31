@@ -47,6 +47,10 @@ for (const file of fs.readdirSync(scriptsPath).filter((name) => name.endsWith('.
   }
 }
 
+// Event-driven features live in lib/ and wire themselves up — the loader above
+// only knows how to route commands.
+require('./lib/welcome-intro').register(client);
+
 client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}`);
   console.log(`Loaded ${client.commands.size} command(s): ${[...client.commands.keys()].join(', ')}`);

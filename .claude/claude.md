@@ -30,13 +30,25 @@ interaction). To get a real ephemeral from a prefix command, reply with a button
 and answer the *click* — a click is an interaction. See `runPrefix` in
 `scripts/ping.js`; delete the public prompt on collector `end`.
 
+## Adding an Event Feature
+Anything driven by a gateway event rather than a command goes in `lib/` — the
+`scripts/` loader and `check.js` both require a `data`/`execute` pair, so an
+event handler placed there fails the check. Export a `register(client)` that
+attaches its own listeners and call it from `index.js`. See
+`lib/welcome-intro.js`.
+
 ## Environment Variables
 - `DISCORD_TOKEN` — bot token from Discord Developer Portal
 - `CLIENT_ID` — application ID, used for slash command registration
 - `GUILD_ID` — server ID, used for dev-scoped command registration
 - `LID_ROLE_ID` — optional override for the "lid" role targeted by `/clear-lid`
+  and granted by the welcome flow
 - `LID_BACKUP_DIR` — optional override for where role backups are written
 - `COMMAND_PREFIX` — message-command prefix, defaults to `%`
+- `INTRO_CHANNEL_ID` — optional override for #introductions
+- `GENERAL_CHANNEL_ID` — optional override for #general
+- `INTRO_PROMPT_TIMEOUT_MS` — how long a welcome prompt lingers, defaults to
+  10 minutes; `0` keeps it forever
 
 ## Notes
 - Two privileged intents are required, both enabled in the Developer Portal or login

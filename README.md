@@ -113,6 +113,41 @@ both counts. The restore is itself confirmation-gated.
 `data/` is gitignored — the snapshots contain member IDs. Set `LID_BACKUP_DIR` to
 store them elsewhere.
 
+## Welcoming new members
+
+[`lib/welcome-intro.js`](lib/welcome-intro.js) runs the onboarding flow. It is not
+a command — it listens for gateway events and is wired up from `index.js`:
+
+| When | What happens |
+| --- | --- |
+| A member joins | They are pinged in **#introductions** and can read the channel's rules privately. |
+| They post their intro | They are granted the **lid** role and congratulated privately in **#general**. |
+
+Both replies are ephemeral, so onboarding leaves the channels clean. Discord has
+no way to send an unprompted ephemeral — the flag requires an interaction token,
+and neither a join nor a plain message has one. So each step posts a short-lived
+public message that pings the member and carries one button; the *click* is an
+interaction, so its reply can be ephemeral. This is the same constraint that
+shapes `%ping private` above.
+
+The public ping is deleted as soon as the button is used, and swept after 10
+minutes otherwise (`INTRO_PROMPT_TIMEOUT_MS`, `0` to keep it). Anyone else who
+clicks gets their own ephemeral "not for you".
+
+The role is granted on the message itself, not on the button click — the rules
+promise access for posting, so it must not depend on clicking anything. Only a
+member's first message promotes them; once they hold the role, later messages in
+the channel are ignored. The bot needs **Manage Roles** and a role above **lid**;
+if it cannot grant the role it logs why and stays quiet rather than congratulating
+someone who did not actually get access.
+
+If your server uses membership screening, `guildMemberAdd` fires while the member
+is still `pending` and cannot see any channel — the greeting waits for them to
+accept the rules first.
+
+Channel and role IDs default to this server's and can be overridden with
+`INTRO_CHANNEL_ID`, `GENERAL_CHANNEL_ID`, and `LID_ROLE_ID` in `.env`.
+
 ## Development
 
 `npm run check` validates the source: every `.js` file parses, and every command
