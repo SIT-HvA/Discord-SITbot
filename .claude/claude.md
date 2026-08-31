@@ -48,8 +48,9 @@ attaches its own listeners and call it from `index.js`. See
 - `INTRO_CHANNEL_ID` — optional override for #introductions
 - `GENERAL_CHANNEL_ID` — optional override for #general
 - `INTRO_PROMPT_TIMEOUT_MS` — how long an unanswered #introductions ping lingers,
-  defaults to 10 minutes; `0` keeps it forever. Does not apply to the #general
-  welcome, which is left standing.
+  defaults to 10 minutes; `0` keeps it forever
+- `GENERAL_WELCOME_TIMEOUT_MS` — how long the #general welcome lingers, defaults
+  to 2 minutes; `0` keeps it forever
 
 ## After Changing Functionality
 Run all three, in this order, without asking:

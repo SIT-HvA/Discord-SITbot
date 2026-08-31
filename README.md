@@ -132,11 +132,13 @@ the click was the only way in. That is the same constraint that shapes
 of channel instructions, not server rules — Discord's built-in onboarding covers
 those — so one message beats a ping plus a click plus a reply.
 
-The #introductions ping is deleted the moment the member posts, and swept after
-10 minutes otherwise (`INTRO_PROMPT_TIMEOUT_MS`, `0` to keep it). The sweep is an
-in-memory timer, so a restart before it fires strands that message in the
-channel. The #general welcome is left standing — it announces the new member, so
-people can greet and react to it.
+Both messages delete themselves. The #introductions ping goes the moment the
+member posts, and is swept after 10 minutes otherwise
+(`INTRO_PROMPT_TIMEOUT_MS`); the #general welcome is swept after 2 minutes
+(`GENERAL_WELCOME_TIMEOUT_MS`) — long enough for the channel to see someone
+arrived, short enough not to accumulate. `0` keeps either one forever. Both
+sweeps are in-memory timers, so a restart before one fires strands that message
+in the channel.
 
 Only a member's first message promotes them; once they hold the role, later
 messages in the channel are ignored. The bot needs **Manage Roles** and a role
