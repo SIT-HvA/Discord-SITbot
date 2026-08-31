@@ -47,8 +47,23 @@ attaches its own listeners and call it from `index.js`. See
 - `COMMAND_PREFIX` — message-command prefix, defaults to `%`
 - `INTRO_CHANNEL_ID` — optional override for #introductions
 - `GENERAL_CHANNEL_ID` — optional override for #general
-- `INTRO_PROMPT_TIMEOUT_MS` — how long a welcome prompt lingers, defaults to
-  10 minutes; `0` keeps it forever
+- `INTRO_PROMPT_TIMEOUT_MS` — how long an unanswered #introductions ping lingers,
+  defaults to 10 minutes; `0` keeps it forever. Does not apply to the #general
+  welcome, which is left standing.
+
+## After Changing Functionality
+Run all three, in this order, without asking:
+
+```
+npm run prepare   # re-point core.hooksPath at .githooks
+npm run check     # validate every source file and command payload
+npm run deploy    # re-register slash commands to GUILD_ID
+```
+
+Run them for any behaviour change, not just ones that touch `scripts/` — the
+whole point is that the registered commands never drift from the source. Report
+the output; if `check` fails, fix it and rerun the sequence rather than
+continuing on to `deploy`.
 
 ## Notes
 - Two privileged intents are required, both enabled in the Developer Portal or login

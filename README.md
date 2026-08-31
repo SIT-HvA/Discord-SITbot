@@ -120,26 +120,28 @@ a command — it listens for gateway events and is wired up from `index.js`:
 
 | When | What happens |
 | --- | --- |
-| A member joins | They are pinged in **#introductions** and can read the channel's rules privately. |
-| They post their intro | They are granted the **lid** role and congratulated privately in **#general**. |
+| A member joins | They are pinged in **#introductions** with the channel's instructions. |
+| They post their intro | They are granted the **lid** role and welcomed in **#general**. |
 
-Both replies are ephemeral, so onboarding leaves the channels clean. Discord has
-no way to send an unprompted ephemeral — the flag requires an interaction token,
-and neither a join nor a plain message has one. So each step posts a short-lived
-public message that pings the member and carries one button; the *click* is an
-interaction, so its reply can be ephemeral. This is the same constraint that
-shapes `%ping private` above.
+Each step is a single public message that pings the member and says what it has
+to say. An earlier version put the text behind a button so the reply could be
+ephemeral — Discord has no way to send an *unprompted* ephemeral, since the flag
+requires an interaction token and neither a join nor a plain message has one, so
+the click was the only way in. That is the same constraint that shapes
+`%ping private` above, but it is not worth paying here: the text is three lines
+of channel instructions, not server rules — Discord's built-in onboarding covers
+those — so one message beats a ping plus a click plus a reply.
 
-The public ping is deleted as soon as the button is used, and swept after 10
-minutes otherwise (`INTRO_PROMPT_TIMEOUT_MS`, `0` to keep it). Anyone else who
-clicks gets their own ephemeral "not for you".
+The #introductions ping is deleted the moment the member posts, and swept after
+10 minutes otherwise (`INTRO_PROMPT_TIMEOUT_MS`, `0` to keep it). The sweep is an
+in-memory timer, so a restart before it fires strands that message in the
+channel. The #general welcome is left standing — it announces the new member, so
+people can greet and react to it.
 
-The role is granted on the message itself, not on the button click — the rules
-promise access for posting, so it must not depend on clicking anything. Only a
-member's first message promotes them; once they hold the role, later messages in
-the channel are ignored. The bot needs **Manage Roles** and a role above **lid**;
-if it cannot grant the role it logs why and stays quiet rather than congratulating
-someone who did not actually get access.
+Only a member's first message promotes them; once they hold the role, later
+messages in the channel are ignored. The bot needs **Manage Roles** and a role
+above **lid**; if it cannot grant the role it logs why and stays quiet rather
+than congratulating someone who did not actually get access.
 
 If your server uses membership screening, `guildMemberAdd` fires while the member
 is still `pending` and cannot see any channel — the greeting waits for them to
