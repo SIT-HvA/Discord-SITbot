@@ -1,0 +1,29 @@
+#!/bin/sh
+# Runs on every `git commit` in this repo (see core.hooksPath in package.json's
+# "prepare" script). Bypass a single commit with `git commit --no-verify`.
+
+echo "pre-commit: validating source..."
+node check.js || exit 1
+
+echo "pre-commit: checking for leaked credentials..."
+
+# .env holds the bot token and must never be tracked.
+if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+  echo "pre-commit: FAILED - .env is tracked by git."
+  echo "  Fix: git rm --cached .env"
+  exit 1
+fi
+
+# Catch a token pasted into any staged file, not just .env.
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+  added=$(git diff --cached -U0 --diff-filter=ACM | grep '^+' | grep -v '^+++')
+
+  if printf '%s' "$added" | grep -qE '[A-Za-z0-9_-]{23,28}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}'; then
+    echo "pre-commit: FAILED - staged changes look like they contain a Discord bot token:"
+    printf '%s' "$added" | grep -nE '[A-Za-z0-9_-]{23,28}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}'
+    echo "  Move it to .env, or bypass with --no-verify if this is a false positive."
+    exit 1
+  fi
+fi
+
+echo "pre-commit: OK"
