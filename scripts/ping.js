@@ -1,6 +1,16 @@
-const { InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  InteractionContextType,
+  MessageFlags,
+  SlashCommandBuilder,
+} = require('discord.js');
 
 const pong = (isPrivate) => (isPrivate ? 'pong' : 'pong!');
+
+const REVEAL_TIMEOUT_MS = 60_000;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -40,15 +50,50 @@ module.exports = {
       return;
     }
 
-    // Ephemeral replies are interaction-only, so a DM is the closest a prefix
-    // command gets to "only viewable by you". The invoking message stays in the
-    // channel either way — the user posted that themselves.
-    try {
-      await message.author.send(pong(true));
-    } catch {
-      await message.reply(
-        "I couldn't DM you. Enable **Direct Messages** from server members, or use `/ping private:True`."
-      );
-    }
+    // An ephemeral reply needs an interaction token and a plain message has none.
+    // A button click, however, IS an interaction — so offer a button and answer
+    // the click ephemerally. That is the only way a prefix command reaches the
+    // real "Only you can see this - Dismiss message" reply.
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`ping:reveal:${message.id}`)
+        .setLabel('Show me pong')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    const prompt = await message.reply({
+      content: `Only ${message.author.username} can use this button.`,
+      components: [buttons],
+      allowedMentions: { repliedUser: false },
+    });
+
+    const collector = prompt.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: REVEAL_TIMEOUT_MS,
+    });
+
+    collector.on('collect', async (interaction) => {
+      // Answer bystanders privately too, rather than leaving the click to fail.
+      if (interaction.user.id !== message.author.id) {
+        await interaction
+          .reply({
+            content: 'That button is not for you — run `%ping private` yourself.',
+            flags: MessageFlags.Ephemeral,
+          })
+          .catch(() => {});
+        return;
+      }
+
+      await interaction
+        .reply({ content: pong(true), flags: MessageFlags.Ephemeral })
+        .catch(() => {});
+      collector.stop('revealed');
+    });
+
+    // Clear the public prompt whether it was used or timed out, so the channel
+    // is left with nothing but the user's own message.
+    collector.on('end', () => {
+      prompt.delete().catch(() => {});
+    });
   },
 };

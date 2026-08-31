@@ -56,13 +56,18 @@ The same command also answers to the `%` message prefix:
 | `/ping` | `pong!` in channel |
 | `/ping private:True` | `pong`, ephemeral |
 | `%ping` | `pong!` in channel |
-| `%ping private` | `pong` **by DM** |
+| `%ping private` | `pong`, ephemeral — behind one button click |
 
-`%ping private` cannot be ephemeral: the *"Only you can see this"* reply is a
-feature of slash-command interactions and has no equivalent for ordinary
-messages. A DM is the closest match, so that is what it sends — and if the user
-has DMs from server members closed, it says so in the channel instead. The
-invoking `%ping private` message stays visible; the bot does not delete it.
+`%ping private` posts a short-lived public message with a **Show me pong** button.
+Clicking it returns a genuine ephemeral `pong`, identical to `/ping private:True`,
+and the public prompt is deleted — so the channel is left with nothing but the
+user's own message. Unclicked, the prompt is removed after 60 seconds. Anyone
+other than the invoker who clicks gets their own ephemeral "not for you".
+
+The button exists because an ephemeral reply requires an interaction token and a
+plain message has none — but a *button click* is an interaction, so its response
+can be ephemeral. discord.js enforces this directly: `MessagePayload` only applies
+the Ephemeral flag when the target is an interaction.
 
 Prefix matching is case-insensitive and tolerates extra whitespace. Change the
 prefix with `COMMAND_PREFIX` in `.env`.

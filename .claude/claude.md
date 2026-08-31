@@ -22,8 +22,13 @@ Drop a file in `scripts/` exporting `{ data, execute }`, then run `npm run deplo
 Files missing either export are skipped with a warning.
 
 To also answer the `%` message prefix, export `prefix` (a name or array of names)
-and `runPrefix(message, args)`. Prefix replies cannot be ephemeral — that is an
-interaction-only feature — so DM the user when a private response is wanted.
+and `runPrefix(message, args)`.
+
+A prefix reply cannot be ephemeral: the flag needs an interaction token and a
+plain message has none (discord.js only sets it when the target is an
+interaction). To get a real ephemeral from a prefix command, reply with a button
+and answer the *click* — a click is an interaction. See `runPrefix` in
+`scripts/ping.js`; delete the public prompt on collector `end`.
 
 ## Environment Variables
 - `DISCORD_TOKEN` — bot token from Discord Developer Portal
