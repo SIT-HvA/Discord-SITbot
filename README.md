@@ -15,9 +15,10 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
    CLIENT_ID=your_application_id_here
    GUILD_ID=your_server_id_here
    ```
-4. Enable the **Server Members Intent** for your app under
-   *Developer Portal → Bot → Privileged Gateway Intents*. The bot needs it to
-   enumerate role holders and will fail to log in without it.
+4. Enable **Server Members Intent** and **Message Content Intent** for your app
+   under *Developer Portal → Bot → Privileged Gateway Intents*. The first lets the
+   bot enumerate role holders, the second lets it read `%` prefix commands.
+   Both are privileged — the bot fails to log in if either is missing.
 5. Register the slash commands with your server:
    ```
    npm run deploy
@@ -47,6 +48,28 @@ ephemerally — Discord shows it as *"Only you can see this · Dismiss message"*
 `private` is an **option**, not a subcommand, because Discord won't let a bare
 `/ping` be invoked once a command defines subcommands. Works in servers and DMs,
 with no permission requirement.
+
+The same command also answers to the `%` message prefix:
+
+| Typed | Reply |
+| --- | --- |
+| `/ping` | `pong!` in channel |
+| `/ping private:True` | `pong`, ephemeral |
+| `%ping` | `pong!` in channel |
+| `%ping private` | `pong` **by DM** |
+
+`%ping private` cannot be ephemeral: the *"Only you can see this"* reply is a
+feature of slash-command interactions and has no equivalent for ordinary
+messages. A DM is the closest match, so that is what it sends — and if the user
+has DMs from server members closed, it says so in the channel instead. The
+invoking `%ping private` message stays visible; the bot does not delete it.
+
+Prefix matching is case-insensitive and tolerates extra whitespace. Change the
+prefix with `COMMAND_PREFIX` in `.env`.
+
+Any command can opt into the prefix by exporting `prefix` (a name or array of
+names) alongside `runPrefix(message, args)`; `npm run check` rejects a command
+that declares one without the other.
 
 ### `/clear-lid`
 

@@ -21,16 +21,22 @@ A Discord bot built with discord.js v14 and Node.js.
 Drop a file in `scripts/` exporting `{ data, execute }`, then run `npm run deploy`.
 Files missing either export are skipped with a warning.
 
+To also answer the `%` message prefix, export `prefix` (a name or array of names)
+and `runPrefix(message, args)`. Prefix replies cannot be ephemeral — that is an
+interaction-only feature — so DM the user when a private response is wanted.
+
 ## Environment Variables
 - `DISCORD_TOKEN` — bot token from Discord Developer Portal
 - `CLIENT_ID` — application ID, used for slash command registration
 - `GUILD_ID` — server ID, used for dev-scoped command registration
 - `LID_ROLE_ID` — optional override for the "lid" role targeted by `/clear-lid`
 - `LID_BACKUP_DIR` — optional override for where role backups are written
+- `COMMAND_PREFIX` — message-command prefix, defaults to `%`
 
 ## Notes
-- The bot uses the privileged `GuildMembers` intent (needed to enumerate role holders);
-  it must be enabled in the Developer Portal or login fails.
+- Two privileged intents are required, both enabled in the Developer Portal or login
+  fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
+  prefix commands).
 - Destructive commands prompt for confirmation with buttons before acting, and
   snapshot the state they are about to destroy so it can be reversed.
 - Backup ids reach `lib/lid-backups.js` from user input; keep the id/guild-id

@@ -38,6 +38,7 @@ for (const file of files) {
 const { SlashCommandBuilder } = require('discord.js');
 const scriptsPath = path.join(root, 'scripts');
 const names = new Map();
+const prefixes = new Map();
 
 for (const file of fs.readdirSync(scriptsPath).filter((name) => name.endsWith('.js'))) {
   const rel = `scripts/${file}`;
@@ -71,6 +72,28 @@ for (const file of fs.readdirSync(scriptsPath).filter((name) => name.endsWith('.
     errors.push(`${rel} — duplicate command name "${json.name}", also in ${names.get(json.name)}`);
   }
   names.set(json.name, rel);
+
+  // Optional prefix half: half-declared, and index.js silently never routes it.
+  if (command.prefix || command.runPrefix) {
+    if (!command.prefix) {
+      errors.push(`${rel} — has "runPrefix" but no "prefix" name to route it from`);
+    } else if (typeof command.runPrefix !== 'function') {
+      errors.push(`${rel} — declares prefix "${command.prefix}" but "runPrefix" is not a function`);
+    }
+
+    for (const name of [command.prefix || []].flat()) {
+      if (typeof name !== 'string' || !/^\S+$/.test(name)) {
+        errors.push(`${rel} — prefix name ${JSON.stringify(name)} must be a whitespace-free string`);
+        continue;
+      }
+
+      const key = name.toLowerCase();
+      if (prefixes.has(key)) {
+        errors.push(`${rel} — duplicate prefix name "${key}", also in ${prefixes.get(key)}`);
+      }
+      prefixes.set(key, rel);
+    }
+  }
 }
 
 if (errors.length > 0) {
@@ -81,4 +104,7 @@ if (errors.length > 0) {
 }
 
 const list = [...names.keys()].map((name) => `/${name}`).join(', ');
+const prefixList = [...prefixes.keys()].map((name) => `%${name}`).join(', ');
+
 console.log(`check passed — ${files.length} file(s) parsed, ${names.size} command(s) valid: ${list}`);
+if (prefixes.size > 0) console.log(`  prefix command(s): ${prefixList}`);
