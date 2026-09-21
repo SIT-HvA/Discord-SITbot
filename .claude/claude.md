@@ -74,6 +74,9 @@ continuing on to `deploy`.
 - `/event` reads `GET https://svsit.nl/api/events/<uuid>` (envelope `{ data, error, meta }`,
   404 for unknown or non-uuid ids). Parsing, fetching and the embed live in
   `lib/svsit-events.js`; `scripts/event.js` only wires the interaction.
+- `/event language:` translates the description via `lib/translate.js` (Google Translate
+  gtx endpoint, unofficial, keyless, 5 s timeout, in-memory cache). Failures are soft:
+  original text plus a footer note, never an error reply.
 - Two privileged intents are required, both enabled in the Developer Portal or login
   fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
   prefix commands).

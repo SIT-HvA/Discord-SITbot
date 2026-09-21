@@ -5,9 +5,9 @@
 | T001 DONE | `parseEventUrl`, `eventPageUrl`, `fetchEvent` met tests | lib/svsit-events.js, test/ | - | 25 min |
 | T002 DONE | `buildEventEmbed` met tests (M3, M4, M7, limieten) | lib/svsit-events.js, test/ | T001 | 30 min |
 | T003 DONE | `scripts/event.js` slash plus prefix, `npm test` script, docs (README, .claude/claude.md) | scripts/event.js, package.json, README.md, .claude/claude.md | T002 | 25 min |
-| T004 | `lib/translate.js`: Google gtx client, parsing, timeout, cache, met tests | lib/translate.js, test/ | - | 30 min |
-| T005 | embed `description`/`footerNote` opties, `language` optie in slash en prefix, met tests | lib/svsit-events.js, scripts/event.js, test/ | T004 | 30 min |
-| T006 | docs (README, .claude/claude.md), check, deploy, live integratie, testReport | README.md, .claude/claude.md, specs/ | T005 | 20 min |
+| T004 DONE | `lib/translate.js`: Google gtx client, parsing, timeout, cache, met tests | lib/translate.js, test/ | - | 30 min |
+| T005 DONE | embed `description`/`footerNote` opties, `language` optie in slash en prefix, met tests | lib/svsit-events.js, scripts/event.js, test/ | T004 | 30 min |
+| T006 DONE | docs (README, .claude/claude.md), check, deploy, live integratie, testReport | README.md, .claude/claude.md, specs/ | T005 | 20 min |
 
 ## Acceptance criteria
 - T001: geldige svsit.nl en www URL met slash/query/hash geven de uuid; andere hosts, andere paden, niet-uuid geven null. 200 geeft event, 404 geeft not_found, netwerkfout/timeout/5xx/kapotte JSON geven unavailable. Timeout via AbortSignal.
@@ -22,4 +22,7 @@
 - T001/T002: embed-builder is samen met parse/fetch geschreven, de T002-tests kwamen daarna (geen aparte RED voor T002). Alle 18 tests groen.
 - T002: het live veld `poster_url` staat nog niet in de lokale svsit-site checkout (~/work/svsit-site loopt achter op productie), wel in de live API. Embed gebruikt het als image.
 - T003: ongeldige URL wordt voor `deferReply` afgewezen (ephemeral). Na een publieke defer kan de reply niet meer ephemeral worden, dus bij fetch-fout: deleteReply plus ephemeral followUp.
+- T004: gtx-antwoord is `[[[vertaald, origineel, ...], ...], null, brontaal]`; eigen AbortController zoals in fetchEvent. Alleen geslaagde vertalingen in de cache, anders blijft een tijdelijke storing 200 entries lang hangen.
+- T005: de cache is module-globaal, dus command-tests die vertalen hebben elk een eigen event-id nodig (2x tegen aangelopen). Gedetecteerde taal gelijk aan gekozen taal: originele tekst zonder noot (fix bf73c66), anders claimt de footer een vertaling die er niet is.
+- T006 live 2026-09-21: "SIT x MODUS x Athena D&D" nl naar en in ~1 s, zonder taal origineel, nl op nl origineel zonder noot, cache-hit zonder tweede Google-call.
 - Integratie-run 2026-09-21 tegen live svsit.nl: upcoming event (poster, tickets, signups), afgelopen event (footer), 404 en 1 ms timeout allemaal correct.

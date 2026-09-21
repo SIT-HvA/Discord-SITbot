@@ -35,7 +35,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/ping` | Replies `pong!`. Add `private:True` for a reply only you can see. |
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
-| `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`. Also `%event <link>`. |
+| `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description. Also `%event <link> [nl\|en]`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -91,6 +91,14 @@ in the footer.
 Errors are ephemeral: a link that is not a svsit.nl event, an event that does
 not exist (404), or svsit.nl not answering within 8 seconds. The prefix form
 `%event <link>` posts the same embed publicly and its errors as a normal reply.
+
+Pick `language` (Nederlands or English) to have the description translated;
+the title and location stay as written and the footer says so. Translation goes
+through the same keyless endpoint the Google Translate web page uses, so it
+needs no account. That endpoint is unofficial: if it stops answering, the embed
+still appears with the original text and a footer note instead of an error.
+Translations are cached in memory per event and language. The prefix form is
+`%event <link> nl` or `%event <link> en`.
 
 The data comes from the public `GET /api/events/<id>` endpoint. Point the bot at
 another checkout of the site with `SVSIT_BASE_URL` in `.env`.
