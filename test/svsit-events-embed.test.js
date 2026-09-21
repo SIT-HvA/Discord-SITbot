@@ -127,3 +127,26 @@ describe('buildEventEmbed', () => {
     assert.equal(field(json, 'Where').value.length, 1024);
   });
 });
+
+describe('buildEventEmbed translation options', () => {
+  test('uses the given description instead of the event text and appends the footer note', () => {
+    const json = buildEventEmbed(baseEvent(), {
+      now: BEFORE,
+      description: 'AI, mentale gezondheid, schermbalans.',
+      footerNote: 'Translated with Google Translate',
+    }).toJSON();
+
+    assert.equal(json.description, 'AI, mentale gezondheid, schermbalans.');
+    assert.equal(json.footer.text, 'svsit.nl  Translated with Google Translate');
+  });
+
+  test('keeps the ended note in front of the footer note', () => {
+    const json = buildEventEmbed(baseEvent(), { now: AFTER, footerNote: 'Translation unavailable, showing the original text' }).toJSON();
+    assert.equal(json.footer.text, 'svsit.nl  This event has ended  Translation unavailable, showing the original text');
+  });
+
+  test('truncates an overriding description to the limit as well', () => {
+    const json = buildEventEmbed(baseEvent(), { now: BEFORE, description: 'X'.repeat(2000) }).toJSON();
+    assert.equal(json.description.length, 1000);
+  });
+});
