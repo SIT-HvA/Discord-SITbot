@@ -35,7 +35,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/ping` | Replies `pong!`. Add `private:True` for a reply only you can see. |
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
-| `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description. Also `%event <link> [nl\|en]`. |
+| `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description, set `announce` to ping @everyone (needs Mention Everyone). Also `%event <link> [nl\|en] [announce]`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -99,6 +99,14 @@ needs no account. That endpoint is unofficial: if it stops answering, the embed
 still appears with the original text and a footer note instead of an error.
 Translations are cached in memory per event and language. The prefix form is
 `%event <link> nl` or `%event <link> en`.
+
+Set `announce:True` to post `@everyone` above the embed as a real ping. Only
+members who hold Discord's **Mention Everyone** permission in that channel can
+do this; anyone else gets an ephemeral refusal and nothing is posted. The bot
+needs the same permission in the channel, and announcing does not work in DMs.
+Who may announce is therefore managed in Discord's role settings, not in the
+bot. The prefix form is `%event <link> announce`, optionally combined with
+`nl` or `en` in any order.
 
 The data comes from the public `GET /api/events/<id>` endpoint. Point the bot at
 another checkout of the site with `SVSIT_BASE_URL` in `.env`.

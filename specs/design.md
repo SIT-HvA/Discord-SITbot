@@ -44,6 +44,17 @@ Prijzen in centen. 404 geeft `{ data: null, error: 'Event niet gevonden' }`, ook
 3. niet ok: originele description en footerNote `Translation unavailable, showing the original text`.
 4. Geen description: niets vertalen, geen footerNote.
 
+## Announce (M9)
+1. `announce` gelezen (slash: `getBoolean('announce')`, prefix: een argument gelijk aan `announce`, hoofdletterongevoelig).
+2. Voor `deferReply`: `announceRefusal(interaction)` geeft een tekst of null.
+   - Niet in een guild (`memberPermissions` ontbreekt): `Announcing only works in a server channel.`
+   - Aanroeper mist `PermissionFlagsBits.MentionEveryone` in `interaction.memberPermissions`: `You need the Mention Everyone permission to announce an event.`
+   - Bot mist `MentionEveryone` in `interaction.appPermissions`: `I need the Mention Everyone permission in this channel to announce.`
+   Tekst aanwezig: ephemeral reply, klaar. Zo blijft de fout ephemeral (voor de defer).
+3. Reply-payload krijgt `content: '@everyone'` en `allowedMentions: { parse: ['everyone'] }`. Zonder announce blijft de payload ongewijzigd.
+4. Prefix: `message.member?.permissionsIn(message.channel)` en `message.channel.permissionsFor(message.guild.members.me)`; weigering als gewone reply. allowedMentions wordt `{ parse: ['everyone'], repliedUser: false }`.
+5. `eventReply(link, language, announce)` bouwt de payload, `scripts/event.js` doet de checks. `lib/svsit-events.js` verandert niet.
+
 ## Error handling
 - Ongeldige URL: ephemeral `That is not a svsit.nl event link. Expected https://svsit.nl/events/<id>.`
 - not_found: ephemeral `No event found at that link.`

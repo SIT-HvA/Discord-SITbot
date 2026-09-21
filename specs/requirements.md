@@ -11,6 +11,8 @@
 
 - M8 Optionele `language` keuze (Nederlands, English). Gekozen: omschrijving vertaald via het onofficiele Google Translate gtx-endpoint (geen key, geen account). Titel en locatie blijven origineel. Footer meldt `Translated with Google Translate`. Vertaling faalt of duurt te lang: embed in de originele taal met footer `Translation unavailable, showing the original text`, geen foutmelding. Prefix: `%event <link> nl|en`.
 
+- M9 Optionele `announce` vlag (boolean). Aan: het bericht begint met `@everyone` boven de embed en pingt echt (allowedMentions parse everyone). Alleen leden met de Discord-permissie **Mention Everyone** in dat kanaal mogen dit; anderen krijgen een ephemeral weigering en er wordt niets gepost. Buiten een server (DM) is announce niet mogelijk: zelfde weigering. Heeft de bot zelf geen Mention Everyone in het kanaal: ephemeral melding, niets gepost. Prefix: `%event <link> [nl|en] announce`, zelfde permissiecheck, weigering als gewone reply.
+
 ## Should
 - S2 Vertalingen per event en taal in het geheugen cachen (max 200 entries).
 - S1 Basis-URL van de site overschrijfbaar via env `SVSIT_BASE_URL` (default `https://svsit.nl`) voor lokaal testen.
@@ -33,3 +35,4 @@
 - Vertaaldienst? Thijmen koos 2026-09-21 optie 1 (Google gtx, onofficieel) boven MyMemory en DeepL: geen account. Risico dat Google het endpoint sluit is geaccepteerd, de fallback toont dan de originele tekst.
 - Bare uuid zonder URL? Nee, alleen URL (vraag van Thijmen was expliciet "met de event url").
 - Taal? Engels, consistent met ping en clear-lid.
+- Wie mag announcen (2026-09-21, increment 3)? Thijmen: "alleen een aantal mensen". Gekozen: de Discord-permissie Mention Everyone van de aanroeper, geen eigen rollenlijst in .env. Bestuur krijgt de permissie via een rol in Discord, de bot volgt dat.

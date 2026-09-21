@@ -14,3 +14,16 @@
 | 7. Content | N/A (bot, geen site) | - | - |
 | 8. Video | N/A | - | - |
 | 9. Launch | PENDING | wacht op: pull plus herstart van de draaiende bot en een echte /event klik door Thijmen | - |
+
+## Increment 3: announce (M9, T007-T008)
+
+| Fase | Status | Approved by | Datum |
+|------|--------|-------------|-------|
+| 0. Intake | APPROVED | vraag Thijmen: announce-parameter met @everyone, alleen voor een aantal mensen | 2026-09-21 |
+| 1. Requirements | APPROVED | M9 in requirements.md, clarify: Mention Everyone permissie | 2026-09-21 |
+| 2. Design | APPROVED | sectie Announce in design.md, geen UI | 2026-09-21 |
+| 3. Tasks | APPROVED | T007-T008, M9 gedekt door T007, docs door T008 | 2026-09-21 |
+| 4. Implement | APPROVED | reviewer ronde 1 CHANGES_REQUESTED alleen op boundary (docs), opgelost door T007 apart te committen; geen functionele issues | 2026-09-21 |
+| 5. Test | APPROVED | 50/50 tests vers gedraaid, check groen, specs/testReport.md | 2026-09-21 |
+| 6. Deploy | APPROVED | commands geregistreerd met announce-optie, teruggelezen uit Discord, specs/deployLog.md | 2026-09-21 |
+| 9. Launch | PENDING | wacht op: push, pull plus herstart van de draaiende bot, echte /event announce:True klik door iemand met Mention Everyone | - |

@@ -77,6 +77,10 @@ continuing on to `deploy`.
 - `/event language:` translates the description via `lib/translate.js` (Google Translate
   gtx endpoint, unofficial, keyless, 5 s timeout, in-memory cache). Failures are soft:
   original text plus a footer note, never an error reply.
+- `/event announce:True` puts `@everyone` above the embed with `allowedMentions.parse`
+  set to everyone. Gate is Discord's own `MentionEveryone` permission, checked on the
+  invoker (`interaction.memberPermissions`) and on the bot (`interaction.appPermissions`)
+  before `deferReply`, so the refusal stays ephemeral. No role list in `.env`.
 - Two privileged intents are required, both enabled in the Developer Portal or login
   fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
   prefix commands).
