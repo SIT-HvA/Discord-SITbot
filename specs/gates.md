@@ -26,4 +26,4 @@
 | 4. Implement | APPROVED | reviewer ronde 1 CHANGES_REQUESTED alleen op boundary (docs), opgelost door T007 apart te committen; geen functionele issues | 2026-09-21 |
 | 5. Test | APPROVED | 50/50 tests vers gedraaid, check groen, specs/testReport.md | 2026-09-21 |
 | 6. Deploy | APPROVED | commands geregistreerd met announce-optie, teruggelezen uit Discord, specs/deployLog.md | 2026-09-21 |
-| 9. Launch | PENDING | wacht op: push, pull plus herstart van de draaiende bot, echte /event announce:True klik door iemand met Mention Everyone | - |
+| 9. Launch | APPROVED | Thijmen: echte /event announce:True klik werkt, met en zonder Mention Everyone ("dit werkt") | 2026-09-21 |
