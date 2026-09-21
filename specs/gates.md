@@ -26,4 +26,4 @@
 | 4. Implement | APPROVED | reviewer ronde 1 CHANGES_REQUESTED alleen op boundary (docs), opgelost door T007 apart te committen; geen functionele issues | 2026-09-21 |
 | 5. Test | APPROVED | 50/50 tests vers gedraaid, check groen, specs/testReport.md | 2026-09-21 |
 | 6. Deploy | APPROVED | commands geregistreerd met announce-optie, teruggelezen uit Discord, specs/deployLog.md | 2026-09-21 |
-| 9. Launch | APPROVED | Thijmen: echte /event announce:True klik werkt, met en zonder Mention Everyone ("dit werkt") | 2026-09-21 |
+| 9. Launch | PENDING | Thijmen testte de klik lokaal (eigen bot-proces vanuit deze checkout): werkt met en zonder Mention Everyone. Productie-bot wacht nog op push, pull en herstart | - |
