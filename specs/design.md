@@ -4,8 +4,12 @@
 - `lib/svsit-events.js`: pure logica, geen Discord-client.
   - `parseEventUrl(input) -> uuid | null`
   - `fetchEvent(uuid, { fetch, baseUrl, timeoutMs }) -> { ok: true, event } | { ok: false, reason: 'not_found' | 'unavailable' }`
-  - `buildEventEmbed(event, { now }) -> EmbedBuilder`
+  - `buildEventEmbed(event, { now, description, footerNote }) -> EmbedBuilder` (description overschrijft event.description, footerNote komt achter de footer)
   - `eventPageUrl(uuid) -> string`
+- `lib/translate.js`: `translate(text, targetLang, { fetch, timeoutMs }) -> { ok: true, text, detected } | { ok: false }`.
+  GET `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=<lang>&dt=t&q=<text>`.
+  Antwoord is een array: `[0]` segmenten `[vertaald, origineel, ...]`, `[2]` gedetecteerde brontaal. Nooit throwen.
+  `cachedTranslate(key, text, lang)` cachet in een Map (max 200, oudste eruit).
 - `scripts/event.js`: slash command `/event url` plus prefix `event`. Deferren, fetchen, embed of ephemeral fout.
 - `test/svsit-events.test.js`: `node:test`, fetch geinjecteerd (geen netwerk in unit tests).
 
@@ -32,7 +36,13 @@ Prijzen in centen. 404 geeft `{ data: null, error: 'Event niet gevonden' }`, ook
 | field Signups | `n` of `n / capacity`, alleen als signup_required |
 | field Tickets | external_ticket_url, alleen als aanwezig |
 | image | poster_url als aanwezig |
-| footer | `svsit.nl` of `svsit.nl  This event has ended` als voorbij (end_date of date + 4h < now, zelfde regel als de site) |
+| footer | `svsit.nl`, plus `  This event has ended` als voorbij, plus `  <footerNote>` als meegegeven (end_date of date + 4h < now, zelfde regel als de site) |
+
+## Vertaalflow (M8)
+1. `language` gekozen en event heeft description: description eerst afkappen op 1000, dan `cachedTranslate(`${id}:${lang}`, ...)`.
+2. ok: embed met vertaalde description en footerNote `Translated with Google Translate`.
+3. niet ok: originele description en footerNote `Translation unavailable, showing the original text`.
+4. Geen description: niets vertalen, geen footerNote.
 
 ## Error handling
 - Ongeldige URL: ephemeral `That is not a svsit.nl event link. Expected https://svsit.nl/events/<id>.`

@@ -9,14 +9,17 @@
 - M6 Ook via prefix `%event <link>` (zelfde embed, publiek).
 - M7 Geannuleerd event: titel krijgt prefix `[Cancelled]`. Voorbij event: footer meldt dat het voorbij is.
 
+- M8 Optionele `language` keuze (Nederlands, English). Gekozen: omschrijving vertaald via het onofficiele Google Translate gtx-endpoint (geen key, geen account). Titel en locatie blijven origineel. Footer meldt `Translated with Google Translate`. Vertaling faalt of duurt te lang: embed in de originele taal met footer `Translation unavailable, showing the original text`, geen foutmelding. Prefix: `%event <link> nl|en`.
+
 ## Should
+- S2 Vertalingen per event en taal in het geheugen cachen (max 200 entries).
 - S1 Basis-URL van de site overschrijfbaar via env `SVSIT_BASE_URL` (default `https://svsit.nl`) voor lokaal testen.
 
 ## Won't
 - Geen caching, geen zoeken op naam, geen lijst van komende events, geen aanmelden vanuit Discord.
 
 ## NFRs
-- Fetch timeout 8 seconden, reply eerst deferren (Discord eist antwoord binnen 3 s).
+- Fetch timeout 8 seconden (event) en 5 seconden (vertaling), reply eerst deferren (Discord eist antwoord binnen 3 s).
 - Geen nieuwe dependencies: Node `fetch` en `node:test`.
 - Alle teksten Engels, zoals de rest van de bot. Geen emoji in bot-teksten.
 - Omschrijving afgekapt op 1000 tekens, veldwaarden op 1024, titel op 256 (Discord limieten).
@@ -27,5 +30,6 @@
 - Embed gebouwd uit live data van een echt event op svsit.nl (integratie-run met output als bewijs).
 
 ## Clarifications
+- Vertaaldienst? Thijmen koos 2026-09-21 optie 1 (Google gtx, onofficieel) boven MyMemory en DeepL: geen account. Risico dat Google het endpoint sluit is geaccepteerd, de fallback toont dan de originele tekst.
 - Bare uuid zonder URL? Nee, alleen URL (vraag van Thijmen was expliciet "met de event url").
 - Taal? Engels, consistent met ping en clear-lid.
