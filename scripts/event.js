@@ -1,4 +1,9 @@
-const { InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
+const {
+  InteractionContextType,
+  MessageFlags,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+} = require('discord.js');
 const { parseEventUrl, fetchEvent, buildEventEmbed } = require('../lib/svsit-events');
 const { cachedTranslate, LANGUAGES } = require('../lib/translate');
 
@@ -6,7 +11,13 @@ const MESSAGES = {
   invalid_url: 'That is not a svsit.nl event link. Expected https://svsit.nl/events/<id>.',
   not_found: 'No event found at that link.',
   unavailable: 'svsit.nl did not respond. Try again in a minute.',
+  announce_no_guild: 'Announcing only works in a server channel.',
+  announce_forbidden: 'You need the Mention Everyone permission to announce an event.',
+  announce_bot_forbidden: 'I need the Mention Everyone permission in this channel to announce.',
 };
+
+const ANNOUNCE_CONTENT = '@everyone';
+const ANNOUNCE_ARG = 'announce';
 
 const FOOTER_TRANSLATED = 'Translated with Google Translate';
 const FOOTER_NOT_TRANSLATED = 'Translation unavailable, showing the original text';
@@ -31,10 +42,22 @@ async function translationOptions(event, language) {
 }
 
 /**
+ * Why an announcement may not go out here, or null when it may. Discord's own
+ * Mention Everyone permission decides who can ping the server, for the invoker
+ * as well as for the bot posting on their behalf.
+ */
+function announceRefusal(memberPermissions, appPermissions) {
+  if (!memberPermissions) return MESSAGES.announce_no_guild;
+  if (!memberPermissions.has(PermissionFlagsBits.MentionEveryone)) return MESSAGES.announce_forbidden;
+  if (!appPermissions?.has(PermissionFlagsBits.MentionEveryone)) return MESSAGES.announce_bot_forbidden;
+  return null;
+}
+
+/**
  * Turns a pasted link into the reply payload: the event embed, or the error
  * text explaining why not. Shared by the slash and the prefix path.
  */
-async function eventReply(link, language) {
+async function eventReply(link, language, announce = false) {
   const id = parseEventUrl(link);
   if (!id) return { error: MESSAGES.invalid_url };
 
@@ -42,7 +65,11 @@ async function eventReply(link, language) {
   if (!result.ok) return { error: MESSAGES[result.reason] };
 
   const options = await translationOptions(result.event, language);
-  return { embeds: [buildEventEmbed(result.event, options)] };
+  const embeds = [buildEventEmbed(result.event, options)];
+  if (!announce) return { embeds };
+
+  // Mentions are only parsed when asked for, so a plain embed never pings.
+  return { content: ANNOUNCE_CONTENT, embeds, allowedMentions: { parse: ['everyone'] } };
 }
 
 module.exports = {
@@ -65,11 +92,17 @@ module.exports = {
         .setName('language')
         .setDescription('Translate the description into this language.')
         .addChoices({ name: 'Nederlands', value: 'nl' }, { name: 'English', value: 'en' })
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName('announce')
+        .setDescription('Ping @everyone above the embed. Needs the Mention Everyone permission.')
     ),
 
   async execute(interaction) {
     const link = interaction.options.getString('url', true);
     const language = interaction.options.getString('language') ?? null;
+    const announce = interaction.options.getBoolean('announce') ?? false;
 
     // Reject a bad link before deferring: an ephemeral error needs the first
     // reply to be ephemeral, and a defer decides that for the whole exchange.
@@ -78,9 +111,18 @@ module.exports = {
       return;
     }
 
+    // Same reason: the permission refusal has to be the first reply to stay ephemeral.
+    const refusal = announce
+      ? announceRefusal(interaction.memberPermissions, interaction.appPermissions)
+      : null;
+    if (refusal) {
+      await interaction.reply({ content: refusal, flags: MessageFlags.Ephemeral });
+      return;
+    }
+
     // The fetch can take longer than Discord's 3 second reply window.
     await interaction.deferReply();
-    const reply = await eventReply(link, language);
+    const reply = await eventReply(link, language, announce);
 
     if (reply.error) {
       // The public deferred reply cannot become ephemeral, so clear it and
@@ -96,14 +138,26 @@ module.exports = {
   prefix: 'event',
 
   async runPrefix(message, args) {
-    // `%event <link> nl` or `%event <link> en`; anything else means no translation.
-    const wanted = args[1]?.toLowerCase();
-    const language = LANGUAGES.has(wanted) ? wanted : null;
+    // `%event <link> [nl|en] [announce]`, flags in any order; anything else is ignored.
+    const flags = args.slice(1).map((arg) => arg.toLowerCase());
+    const language = flags.find((flag) => LANGUAGES.has(flag)) ?? null;
+    const announce = flags.includes(ANNOUNCE_ARG);
 
-    const reply = await eventReply(args[0], language);
+    const refusal = announce
+      ? announceRefusal(
+        message.member?.permissionsIn(message.channel),
+        message.guild ? message.channel.permissionsFor(message.guild.members.me) : null
+      )
+      : null;
+    if (refusal) {
+      await message.reply({ content: refusal, allowedMentions: { repliedUser: false } });
+      return;
+    }
+
+    const reply = await eventReply(args[0], language, announce);
     await message.reply({
       ...(reply.error ? { content: reply.error } : reply),
-      allowedMentions: { repliedUser: false },
+      allowedMentions: { ...reply.allowedMentions, repliedUser: false },
     });
   },
 };

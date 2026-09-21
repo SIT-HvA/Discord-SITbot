@@ -1,6 +1,6 @@
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { MessageFlags } = require('discord.js');
+const { MessageFlags, PermissionFlagsBits, PermissionsBitField } = require('discord.js');
 const command = require('../scripts/event');
 
 const ID = 'e06acbfd-13d1-4002-9546-7066420762ef';
@@ -8,13 +8,18 @@ const LINK = `https://svsit.nl/events/${ID}`;
 const EVENT = { id: ID, title: 'Lets SIT', date: '2026-09-30T13:00:00+00:00', category: 'social', status: 'upcoming', is_paid: false };
 
 // Records every reply-style call so the tests can assert on the exact sequence.
-function fakeInteraction(url, language = null) {
+function fakeInteraction(url, language = null, extras = {}) {
   const calls = [];
   const record = (name) => async (payload) => { calls.push([name, payload]); };
-  const options = { url, language };
+  const options = { url, language, announce: extras.announce ?? null };
   return {
     calls,
-    options: { getString: (name) => options[name] ?? null },
+    memberPermissions: extras.memberPermissions ?? null,
+    appPermissions: extras.appPermissions ?? null,
+    options: {
+      getString: (name) => options[name] ?? null,
+      getBoolean: (name) => options[name] ?? null,
+    },
     reply: record('reply'),
     deferReply: record('deferReply'),
     deleteReply: record('deleteReply'),
@@ -23,9 +28,18 @@ function fakeInteraction(url, language = null) {
   };
 }
 
-function fakeMessage() {
+function fakeMessage(extras = {}) {
   const calls = [];
-  return { calls, reply: async (payload) => { calls.push(payload); } };
+  const me = { id: 'bot' };
+  return {
+    calls,
+    reply: async (payload) => { calls.push(payload); },
+    guild: extras.inGuild === false ? null : { members: { me } },
+    member: extras.inGuild === false ? null : {
+      permissionsIn: () => extras.memberPermissions ?? new PermissionsBitField(),
+    },
+    channel: { permissionsFor: () => extras.appPermissions ?? new PermissionsBitField() },
+  };
 }
 
 const jsonResponse = (body, status = 200) => ({ ok: status < 300, status, json: async () => body });
@@ -113,7 +127,7 @@ describe('command registration', () => {
   test('exposes /event with a required url option and the event prefix', () => {
     const json = command.data.toJSON();
     assert.equal(json.name, 'event');
-    assert.deepEqual(json.options.map((o) => [o.name, o.required]), [['url', true], ['language', false]]);
+    assert.deepEqual(json.options.map((o) => [o.name, o.required]), [['url', true], ['language', false], ['announce', false]]);
     assert.equal(command.prefix, 'event');
   });
 });
@@ -211,5 +225,111 @@ describe('/event language option', () => {
     const option = command.data.toJSON().options.find((o) => o.name === 'language');
     assert.equal(option.required, false);
     assert.deepEqual(option.choices.map((c) => [c.name, c.value]), [['Nederlands', 'nl'], ['English', 'en']]);
+  });
+});
+
+describe('/event announce option (M9)', () => {
+  const everyone = new PermissionsBitField(PermissionFlagsBits.MentionEveryone);
+  const nothing = new PermissionsBitField();
+  const eventFetch = async () => jsonResponse({ data: EVENT, error: null, meta: null });
+
+  test('prepends @everyone and allows the mention when the invoker and the bot may mention everyone', async () => {
+    globalThis.fetch = eventFetch;
+    const interaction = fakeInteraction(LINK, null, { announce: true, memberPermissions: everyone, appPermissions: everyone });
+
+    await command.execute(interaction);
+
+    assert.deepEqual(interaction.calls.map(([name]) => name), ['deferReply', 'editReply']);
+    const payload = interaction.calls[1][1];
+    assert.equal(payload.content, '@everyone');
+    assert.deepEqual(payload.allowedMentions, { parse: ['everyone'] });
+    assert.equal(payload.embeds[0].toJSON().title, 'Lets SIT');
+  });
+
+  test('leaves the payload untouched without announce', async () => {
+    globalThis.fetch = eventFetch;
+    const interaction = fakeInteraction(LINK, null, { announce: false, memberPermissions: nothing, appPermissions: nothing });
+
+    await command.execute(interaction);
+
+    const payload = interaction.calls[1][1];
+    assert.equal(payload.content, undefined);
+    assert.equal(payload.allowedMentions, undefined);
+  });
+
+  test('refuses ephemerally before deferring when the invoker lacks Mention Everyone', async () => {
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    const interaction = fakeInteraction(LINK, null, { announce: true, memberPermissions: nothing, appPermissions: everyone });
+
+    await command.execute(interaction);
+
+    assert.deepEqual(interaction.calls, [[
+      'reply',
+      { content: 'You need the Mention Everyone permission to announce an event.', flags: MessageFlags.Ephemeral },
+    ]]);
+  });
+
+  test('refuses ephemerally outside a server', async () => {
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    const interaction = fakeInteraction(LINK, null, { announce: true });
+
+    await command.execute(interaction);
+
+    assert.deepEqual(interaction.calls, [[
+      'reply',
+      { content: 'Announcing only works in a server channel.', flags: MessageFlags.Ephemeral },
+    ]]);
+  });
+
+  test('tells the invoker when the bot itself may not mention everyone here', async () => {
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    const interaction = fakeInteraction(LINK, null, { announce: true, memberPermissions: everyone, appPermissions: nothing });
+
+    await command.execute(interaction);
+
+    assert.deepEqual(interaction.calls, [[
+      'reply',
+      { content: 'I need the Mention Everyone permission in this channel to announce.', flags: MessageFlags.Ephemeral },
+    ]]);
+  });
+
+  test('prefix: announce argument in any position pings everyone when allowed', async () => {
+    globalThis.fetch = eventFetch;
+    const message = fakeMessage({ memberPermissions: everyone, appPermissions: everyone });
+
+    await command.runPrefix(message, [LINK, 'ANNOUNCE']);
+    await command.runPrefix(message, [LINK, 'announce', 'en']);
+
+    for (const payload of message.calls) {
+      assert.equal(payload.content, '@everyone');
+      assert.deepEqual(payload.allowedMentions, { parse: ['everyone'], repliedUser: false });
+      assert.equal(payload.embeds[0].toJSON().title, 'Lets SIT');
+    }
+  });
+
+  test('prefix: refuses as a normal reply when the invoker lacks Mention Everyone', async () => {
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    const message = fakeMessage({ memberPermissions: nothing, appPermissions: everyone });
+
+    await command.runPrefix(message, [LINK, 'announce']);
+
+    assert.equal(message.calls.length, 1);
+    assert.equal(message.calls[0].content, 'You need the Mention Everyone permission to announce an event.');
+    assert.equal(message.calls[0].embeds, undefined);
+  });
+
+  test('prefix: refuses in a DM', async () => {
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    const message = fakeMessage({ inGuild: false });
+
+    await command.runPrefix(message, [LINK, 'announce']);
+
+    assert.equal(message.calls[0].content, 'Announcing only works in a server channel.');
+  });
+
+  test('registers announce as an optional boolean option', () => {
+    const option = command.data.toJSON().options.find((o) => o.name === 'announce');
+    assert.equal(option.required, false);
+    assert.equal(option.type, 5);
   });
 });
