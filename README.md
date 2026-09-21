@@ -35,6 +35,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/ping` | Replies `pong!`. Add `private:True` for a reply only you can see. |
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
+| `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`. Also `%event <link>`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -75,6 +76,24 @@ prefix with `COMMAND_PREFIX` in `.env`.
 Any command can opt into the prefix by exporting `prefix` (a name or array of
 names) alongside `runPrefix(message, args)`; `npm run check` rejects a command
 that declares one without the other.
+
+### `/event`
+
+Takes a link like `https://svsit.nl/events/<id>` (the `www.` host, a trailing
+slash, query string or `<...>` brackets are fine) and posts the event as an
+embed: title linking back to the page, description, date and time as Discord
+timestamps (so everyone sees their own timezone), location, category, price,
+signup count with capacity when set, external ticket link when there is one,
+and the poster as image. The colour follows the category colour on svsit.nl.
+Cancelled events get a `[Cancelled]` prefix; events that already happened say so
+in the footer.
+
+Errors are ephemeral: a link that is not a svsit.nl event, an event that does
+not exist (404), or svsit.nl not answering within 8 seconds. The prefix form
+`%event <link>` posts the same embed publicly and its errors as a normal reply.
+
+The data comes from the public `GET /api/events/<id>` endpoint. Point the bot at
+another checkout of the site with `SVSIT_BASE_URL` in `.env`.
 
 ### `/clear-lid`
 
@@ -157,6 +176,10 @@ Channel and role IDs default to this server's and can be overridden with
 `npm run check` validates the source: every `.js` file parses, and every command
 in `scripts/` loads, exports `data`/`execute`, and builds a valid Discord payload.
 A command that fails this would otherwise be skipped silently at startup.
+
+`npm test` runs the unit tests in [`test/`](test/) with the built-in `node:test`
+runner (Node 18+, no extra dependency). Network calls are injected, so the tests
+never hit svsit.nl.
 
 These checks run automatically on **every** `git commit` via a hook in
 [`.githooks/`](.githooks/) — terminal, IDE, or otherwise. The hook also refuses a

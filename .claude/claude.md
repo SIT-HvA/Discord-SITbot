@@ -13,6 +13,7 @@ A Discord bot built with discord.js v14 and Node.js.
 - `scripts/` — one file per slash command, each exporting `data` (SlashCommandBuilder) and `execute(interaction)`
 - `lib/` — shared modules; NOT scanned by the command loader, put non-command code here
 - `data/` — runtime state (role backups), gitignored
+- `test/` — unit tests, `node:test` runner (`npm test`); inject `fetch`, never hit the network
 - `check.js` — source validation (`npm run check`)
 - `.githooks/pre-commit` — runs `check.js` + a credential scan on every commit
 - `.env` — credentials (gitignored, never commit)
@@ -51,6 +52,8 @@ attaches its own listeners and call it from `index.js`. See
   defaults to 10 minutes; `0` keeps it forever
 - `GENERAL_WELCOME_TIMEOUT_MS` — how long the #general welcome lingers, defaults
   to 2 minutes; `0` keeps it forever
+- `SVSIT_BASE_URL` — optional override for the svsit.nl origin `/event` reads from,
+  defaults to `https://svsit.nl`
 
 ## After Changing Functionality
 Run all three, in this order, without asking:
@@ -58,6 +61,7 @@ Run all three, in this order, without asking:
 ```
 npm run prepare   # re-point core.hooksPath at .githooks
 npm run check     # validate every source file and command payload
+npm test          # unit tests
 npm run deploy    # re-register slash commands to GUILD_ID
 ```
 
@@ -67,6 +71,9 @@ the output; if `check` fails, fix it and rerun the sequence rather than
 continuing on to `deploy`.
 
 ## Notes
+- `/event` reads `GET https://svsit.nl/api/events/<uuid>` (envelope `{ data, error, meta }`,
+  404 for unknown or non-uuid ids). Parsing, fetching and the embed live in
+  `lib/svsit-events.js`; `scripts/event.js` only wires the interaction.
 - Two privileged intents are required, both enabled in the Developer Portal or login
   fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
   prefix commands).
