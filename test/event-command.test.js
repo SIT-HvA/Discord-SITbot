@@ -174,18 +174,37 @@ describe('/event language option', () => {
   });
 
   test('accepts nl or en as second prefix argument and ignores anything else (M8)', async () => {
+    // Own event id so the translation cache from the tests above cannot answer.
+    const own = { ...DUTCH, id: '11111111-2222-4333-8444-999999999999' };
+    const ownLink = `https://svsit.nl/events/${own.id}`;
     let tl;
-    globalThis.fetch = routedFetch((url) => { tl = new URL(url).searchParams.get('tl'); return gtx('Hallo'); });
+    globalThis.fetch = async (url) => (String(url).startsWith('https://translate.googleapis.com/')
+      ? (tl = new URL(url).searchParams.get('tl'), gtx('Hello'))
+      : jsonResponse({ data: own, error: null, meta: null }));
     const message = fakeMessage();
 
-    await command.runPrefix(message, [DUTCH_LINK, 'NL']);
-    assert.equal(tl, 'nl');
+    await command.runPrefix(message, [ownLink, 'EN']);
+    assert.equal(tl, 'en');
     assert.equal(message.calls[0].embeds[0].toJSON().footer.text, 'svsit.nl  Translated with Google Translate');
 
     tl = undefined;
-    await command.runPrefix(message, [DUTCH_LINK, 'fr']);
+    await command.runPrefix(message, [ownLink, 'fr']);
     assert.equal(tl, undefined);
     assert.equal(message.calls[1].embeds[0].toJSON().footer.text, 'svsit.nl');
+  });
+
+  test('shows the original text without a note when it already is in the chosen language (M8)', async () => {
+    const same = { ...DUTCH, id: '11111111-2222-4333-8444-888888888888' };
+    globalThis.fetch = async (url) => (String(url).startsWith('https://translate.googleapis.com/')
+      ? jsonResponse([[['Kom ook, het is gratis.', 'Kom ook, het is gratis.', null, null]], null, 'nl'])
+      : jsonResponse({ data: same, error: null, meta: null }));
+    const interaction = fakeInteraction(`https://svsit.nl/events/${same.id}`, 'nl');
+
+    await command.execute(interaction);
+
+    const json = interaction.calls[1][1].embeds[0].toJSON();
+    assert.equal(json.description, 'Kom ook, het is gratis.');
+    assert.equal(json.footer.text, 'svsit.nl');
   });
 
   test('registers language as an optional choice between Nederlands and English', () => {

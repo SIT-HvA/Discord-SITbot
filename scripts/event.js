@@ -24,9 +24,10 @@ async function translationOptions(event, language) {
   const original = event.description.trim().slice(0, DESCRIPTION_MAX);
   const result = await cachedTranslate(`${event.id}:${language}`, original, language);
 
-  return result.ok
-    ? { description: result.text, footerNote: FOOTER_TRANSLATED }
-    : { footerNote: FOOTER_NOT_TRANSLATED };
+  if (!result.ok) return { footerNote: FOOTER_NOT_TRANSLATED };
+  // Already in the requested language: nothing was translated, so say nothing.
+  if (result.detected === language) return {};
+  return { description: result.text, footerNote: FOOTER_TRANSLATED };
 }
 
 /**
