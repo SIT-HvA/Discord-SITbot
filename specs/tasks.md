@@ -19,6 +19,8 @@
 | T015 DONE | docs (README, .claude/claude.md), testReport, deployLog, gates bijwerken voor de herziene compact | README.md, .claude/claude.md, specs/ | T014 | 10 min |
 | T016 DONE | gelijke grootte compact: `lib/spacer.js`, spacer als image en 2-regel layout in `buildEventCompactEmbed`, files-attachment in events.js, met tests | lib/spacer.js, lib/svsit-events.js, scripts/events.js, test/svsit-events-public.test.js, test/events-command.test.js | T014 | 30 min |
 | T017 DONE | docs (README, .claude/claude.md), testReport, gates voor T016 | README.md, .claude/claude.md, specs/ | T016 | 10 min |
+| T018 DONE | compact als default: slash default, prefix `full` vlag, choices-volgorde, tests omgedraaid | scripts/events.js, test/events-command.test.js | T016 | 15 min |
+| T019 DONE | docs (README, .claude/claude.md), testReport, gates voor T018 | README.md, .claude/claude.md, specs/ | T018 | 10 min |
 
 ## Acceptance criteria
 - T001: geldige svsit.nl en www URL met slash/query/hash geven de uuid; andere hosts, andere paden, niet-uuid geven null. 200 geeft event, 404 geeft not_found, netwerkfout/timeout/5xx/kapotte JSON geven unavailable. Timeout via AbortSignal.
@@ -44,6 +46,9 @@
 - T016: `SPACER.buffer` is een geldige PNG (begint met de 8-byte PNG-signature, 78 bytes) en `SPACER.name` is `spacer.png`; compact embed: title afgekapt op 60, description precies 2 regels (`<t:start:f>` plus ` (ended)` op regel 1, locatie op regel 2, TBA zonder locatie, locatie afgekapt op 60), `image.url` is `attachment://spacer.png`, thumbnail poster; full card en /event embed ongewijzigd (bestaande tests groen). Command: compact payload heeft `files` met 1 AttachmentBuilder met name `spacer.png`, full payload heeft geen `files`, prefix compact ook `files`. fitEmbeds ongewijzigd.
 - T017: README en claude.md noemen de spacer en de vaste layout.
 
+- T018: zonder `view` geeft `/events` compact kaarten (files met spacer, thumbnail, image spacer); `view: full` geeft de grote kaarten zonder files; `%events` en `%events next` compact, `%events full` en `%events NEXT full` full; registratie: view choices [['Compact','compact'],['Full','full']], week ongewijzigd. Alle andere tests groen.
+- T019: README en claude.md noemen compact als default en `full` als schakelaar.
+
 ## Implementation Notes
 - T001: `AbortSignal.timeout()` gebruikt een unref'd timer, in de test eindigde de event loop voor de abort. Eigen AbortController plus setTimeout met clearTimeout in finally.
 - T001/T002: embed-builder is samen met parse/fetch geschreven, de T002-tests kwamen daarna (geen aparte RED voor T002). Alle 18 tests groen.
@@ -64,3 +69,5 @@
 - T015: docs herschreven voor thumbnail en rand per event.
 - T016 (9877c5d): reviewer APPROVED in 1 ronde, PNG byte-voor-byte gedecodeerd (400x1 RGBA transparant, CRC ok). Info meegenomen: plainText ook op de compact titel zodat een newline in de naam de kaarthoogte niet breekt. embed.length telt image en thumbnail niet. Live payload: files 1x spacer.png 78 bytes, elke kaart image attachment://spacer.png, description 2 regels.
 - T017: docs bijgewerkt. Deploy en Discord-klik door Thijmen (PR #3).
+- T018 (8ecc293): door de orchestrator zelf gebouwd (5 regels code, tests omgedraaid: full-tests geven nu expliciet `full` mee, compact-tests draaien op de default). Prefix-woord `compact` wordt nu genegeerd, `full` schakelt om. Reviewer APPROVED in 1 ronde, RED zelf herhaald.
+- T019: README beschrijft compact als default en full als schakelaar.

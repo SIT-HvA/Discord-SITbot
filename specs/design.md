@@ -145,3 +145,7 @@ Vervangt de lijst-embed hierboven. `buildWeekListEmbed`, `weekListLine`, `plainT
 - `buildEventCompactEmbed`: titel afgekapt op `COMPACT_TITLE_MAX = 60`, description wordt 2 regels: `<t:start:f>${ended}` en daaronder `location` (plainText, afgekapt op `COMPACT_LOCATION_MAX = 60`). `setImage(SPACER_URL)` op elke compact kaart: Discord rekt de embed dan tot de volle breedte, de afbeelding zelf is 1 px hoog en onzichtbaar. Thumbnail blijft de poster.
 - `scripts/events.js`: bij compact krijgt de payload `files: [new AttachmentBuilder(SPACER.buffer, { name: SPACER.name })]` zodat `attachment://spacer.png` in alle embeds van het bericht resolvet. Full ongewijzigd (geen files). Prefix hetzelfde via message.reply.
 - fitEmbeds: image en thumbnail tellen niet mee in embed.length, dus ongewijzigd.
+
+### Default compact (T018)
+- `scripts/events.js`: `eventsReply(weekKey, view = VIEWS.compact, ...)`, slash `getString('view') ?? VIEWS.compact`, choices in volgorde Compact, Full. Prefix: `FULL_ARG = 'full'` vervangt `COMPACT_ARG`; `flags.includes(FULL_ARG)` geeft full, anders compact. Optie-description: `Compact cards (default) or one full embed per event.`
+- Geen wijziging in lib/.

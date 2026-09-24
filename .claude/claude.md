@@ -87,9 +87,9 @@ continuing on to `deploy`.
   DST arithmetic) lives in `lib/week.js`; `fetchPublicEvents` and `buildEventCardEmbed` in
   `lib/svsit-events.js`; `scripts/events.js` filters, sorts and fits the embeds within
   Discord's 10 embeds and 6000 characters per message.
-  `view:compact` (prefix `compact`) uses `buildEventCompactEmbed` instead of the card: same
-  per-event embed and border, but a two-line description (timestamp, location) and the
-  poster as thumbnail. Every compact card sets `attachment://spacer.png` (`lib/spacer.js`, a
+  Compact is the default (`buildEventCompactEmbed`): per-event embed with a two-line
+  description (timestamp, location) and the poster as thumbnail. `view:full` (prefix `full`)
+  uses the big `buildEventCardEmbed` instead. Every compact card sets `attachment://spacer.png` (`lib/spacer.js`, a
   transparent 400x1 PNG sent once per message as a file) as its image so Discord gives all
   cards the same width; title and location are cut to 60 so the height stays fixed too.
   Locations (and the compact title) pass through `plainText` in every embed so brackets or

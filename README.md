@@ -36,7 +36,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
 | `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description, set `announce` to ping @everyone (needs Mention Everyone). Also `%event <link> [nl\|en] [announce]`. |
-| `/events` | Lists the svsit.nl events of this week, one embed per event with the poster and a link to the event page. Pick `week` for next week and `view:Compact` for small cards with the poster as thumbnail. Also `%events [next] [compact]`. |
+| `/events` | Lists the svsit.nl events of this week as compact cards: title linking to the event page, time, location and the poster as thumbnail. Pick `week` for next week and `view:Full` for big cards with the full poster and details. Also `%events [next] [full]`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -116,11 +116,14 @@ another checkout of the site with `SVSIT_BASE_URL` in `.env`.
 
 Posts every svsit.nl event of the current week (Monday to Sunday, Amsterdam
 time) as one message: a line like `Events this week: 22 Sep to 28 Sep` followed
-by one embed per event, sorted by date. Each embed has the title linking to the
-event page, a short description, date and time as Discord timestamps, the
-location and the poster as image. The colour follows the category colour on
-svsit.nl. Events earlier in the week that already happened stay in the list
-with a footer saying so. Pick `week:Next week` to look one week ahead.
+by one compact card per event, sorted by date. Each card has the title linking
+to the event page, the start time as a Discord timestamp, the location (plus
+`(ended)` for events that already happened) and the poster as a small
+thumbnail on the right, with the border in the category colour from svsit.nl.
+The cards share one size: the title is cut to one line, the description is
+always two lines and an invisible 1 pixel high spacer image is attached once
+per message so Discord stretches every card to the same width. Pick
+`week:Next week` to look one week ahead.
 
 A week without events answers `No events this week.` (or `next week`). Discord
 allows 10 embeds and 6000 characters per message, so a busy week shows the
@@ -128,16 +131,10 @@ first events that fit and says how many there are in total. If svsit.nl does
 not answer within 8 seconds the error is ephemeral. The prefix form is
 `%events` or `%events next`, posted publicly.
 
-Pick `view:Compact` for small cards instead: still one embed per event with
-its own category-coloured border, but only the title linking to the event page,
-one line with the start time as a Discord timestamp and the location (plus
-`(ended)` for events that already happened), and the poster as a small
-thumbnail on the right instead of a full-width image. The cards share one size:
-the title is cut to one line, the description is always two lines (time, then
-location) and an invisible 1 pixel high spacer image is attached once per
-message so Discord stretches every card to the same width. Handy for a quick
-overview in a busy channel. `view:Full` is the default described above. The
-prefix form is `%events compact`, combinable with `next` in any order.
+Pick `view:Full` for the big cards instead: the same embed as `/event` minus
+the signup count, so the short description, when, where, category, price, the
+external ticket link and the poster as full-width image. The prefix form is
+`%events full`, combinable with `next` in any order.
 
 The data comes from the public `GET /api/events/public` list, the same
 `SVSIT_BASE_URL` override applies.
