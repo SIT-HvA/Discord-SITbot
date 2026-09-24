@@ -45,17 +45,17 @@ Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claud
 - T009 ronde 1 CHANGES_REQUESTED (alleen testdekking: geen test zonder dateEnd), 2 tests toegevoegd, ronde 2 APPROVED. Reviewer herrekende de weekgrenzen rond DST 25 okt 2026 en de UTC-middernacht-rollover met Intl: correct.
 - T010 ronde 1 APPROVED met 2 non-blocking bevindingen in de lib (RangeError bij ongeldige date, 6000-tekenlimiet), direct gefixt in ffb8abb en a91f984 met tests, hercheck gevraagd.
 
-## Increment 5: compact view (M11, T012-T015)
+## Increment 5: compact view (M11, T012-T017)
 
-Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claude, vers gedraaid na 32bc977.
+Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claude, vers gedraaid na 9877c5d.
 
 | # | Check | Resultaat |
 |---|---|---|
 | 1 | Lint + anti-slop | N/A: geen linter. Handmatig: geen emoji, geen nieuwe deps. |
 | 2 | Types | N/A. `npm run check`: 21 files, groen. |
-| 3 | Unit tests | `npm test`: 110 tests, 110 pass, 0 fail. RED-bewijs builders: T012 13 fails, T014 15 fails voor implementatie. |
+| 3 | Unit tests | `npm test`: 112 tests, 112 pass, 0 fail. RED-bewijs builders: T012 13 fails, T014 15 fails, T016 7 fails voor implementatie. |
 | 4 | E2E | Live run 24 sep tegen svsit.nl na T014: `view:compact` gaf content `Events this week: 21 Sep to 27 Sep` plus 1 kleine embed (De Digitale Schijf van Vijf, kleur career, thumbnail ja, image nee, 0 fields, geen footer, description `<t:..:f>  REC Impact (Roeterseiland) (ended)`, 108 tekens); `week:next` gaf 2 embeds (Lets SIT zaalvoetbal social, NEMO AI Hackathon career) elk met thumbnail; prefix `%events compact NEXT` zelfde payload. Discord-klik door Thijmen na deploy. |
-| 5 | Build | `npm run check`: 5 commands valid, prefixes %event, %events, %ping. |
+| 5 | Build | `npm run check`: 22 files, 5 commands valid, prefixes %event, %events, %ping. |
 | 6 | Lighthouse / SEO | N/A. |
 | 7 | Security | Reviewers vonden 2x link-injectie via het locatieveld (T012 in de lijst-regel, T014 opnieuw na het verwijderen van de helper). `plainText` staat nu op de locatie in alle drie de embeds, test bewijst 1 regel en geen `](`. Mentions in embeds pingen niet. URL altijd vast `https://svsit.nl/events/<uuid>`. |
 | 8 | Accessibility | N/A. |
@@ -67,3 +67,4 @@ Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claud
 ### Review increment 5
 - T012 ronde 1 CHANGES_REQUESTED (link-injectie via location), gefixt, ronde 2 APPROVED (4bf203d).
 - T014 (compact herzien naar kleine embeds met thumbnail) ronde 1 CHANGES_REQUESTED (zelfde klasse: sanitization met de lijst-embed verwijderd), gefixt in 32bc977 met plainText op alle embeds plus test; ronde 2 APPROVED.
+- T016 (gelijke grootte: spacer-attachment plus 2-regel layout) APPROVED in 1 ronde; PNG gevalideerd door de reviewer; live payload: compact 1 file spacer.png 78 B, image attachment://spacer.png per kaart, full zonder files.

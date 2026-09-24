@@ -88,9 +88,12 @@ continuing on to `deploy`.
   `lib/svsit-events.js`; `scripts/events.js` filters, sorts and fits the embeds within
   Discord's 10 embeds and 6000 characters per message.
   `view:compact` (prefix `compact`) uses `buildEventCompactEmbed` instead of the card: same
-  per-event embed and border, but one description line (timestamp, location) and the poster
-  as thumbnail. Locations pass through `plainText` in every embed so brackets or newlines
-  from svsit.nl can never forge a markdown link or split a line.
+  per-event embed and border, but a two-line description (timestamp, location) and the
+  poster as thumbnail. Every compact card sets `attachment://spacer.png` (`lib/spacer.js`, a
+  transparent 400x1 PNG sent once per message as a file) as its image so Discord gives all
+  cards the same width; title and location are cut to 60 so the height stays fixed too.
+  Locations (and the compact title) pass through `plainText` in every embed so brackets or
+  newlines from svsit.nl can never forge a markdown link or split a line.
 - Two privileged intents are required, both enabled in the Developer Portal or login
   fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
   prefix commands).

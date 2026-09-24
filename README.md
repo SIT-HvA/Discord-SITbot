@@ -132,7 +132,10 @@ Pick `view:Compact` for small cards instead: still one embed per event with
 its own category-coloured border, but only the title linking to the event page,
 one line with the start time as a Discord timestamp and the location (plus
 `(ended)` for events that already happened), and the poster as a small
-thumbnail on the right instead of a full-width image. Handy for a quick
+thumbnail on the right instead of a full-width image. The cards share one size:
+the title is cut to one line, the description is always two lines (time, then
+location) and an invisible 1 pixel high spacer image is attached once per
+message so Discord stretches every card to the same width. Handy for a quick
 overview in a busy channel. `view:Full` is the default described above. The
 prefix form is `%events compact`, combinable with `next` in any order.
 

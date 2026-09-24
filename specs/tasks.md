@@ -17,6 +17,8 @@
 | T013 DONE | docs (README, .claude/claude.md), check, deploy, testReport, deployLog, gates | README.md, .claude/claude.md, specs/ | T012 | 15 min |
 | T014 DONE | compact herzien: `buildEventCompactEmbed` (thumbnail rechts, 1 regel, categoriekleur) vervangt `buildWeekListEmbed`; events.js gebruikt fitEmbeds voor beide views; tests aangepast | lib/svsit-events.js, scripts/events.js, test/svsit-events-public.test.js, test/events-command.test.js | T012 | 30 min |
 | T015 DONE | docs (README, .claude/claude.md), testReport, deployLog, gates bijwerken voor de herziene compact | README.md, .claude/claude.md, specs/ | T014 | 10 min |
+| T016 DONE | gelijke grootte compact: `lib/spacer.js`, spacer als image en 2-regel layout in `buildEventCompactEmbed`, files-attachment in events.js, met tests | lib/spacer.js, lib/svsit-events.js, scripts/events.js, test/svsit-events-public.test.js, test/events-command.test.js | T014 | 30 min |
+| T017 DONE | docs (README, .claude/claude.md), testReport, gates voor T016 | README.md, .claude/claude.md, specs/ | T016 | 10 min |
 
 ## Acceptance criteria
 - T001: geldige svsit.nl en www URL met slash/query/hash geven de uuid; andere hosts, andere paden, niet-uuid geven null. 200 geeft event, 404 geeft not_found, netwerkfout/timeout/5xx/kapotte JSON geven unavailable. Timeout via AbortSignal.
@@ -39,6 +41,9 @@
 - T014: `buildEventCompactEmbed`: title (256), url, kleur per categorie met fallback, description `<t:start:f>  locatie` met TBA-fallback en afkappen op 100, ` (ended)` bij voorbij (dateEnd of date plus 4 uur), thumbnail alleen met poster, geen image/fields/footer. `buildWeekListEmbed` en helpers verwijderd, bijbehorende tests weg. Command: `view: compact` geeft content `Events this week: ...` plus 1 compact embed per event (thumbnail gezet, geen image), 12 events geeft 10 plus noot, lege week en fout ongewijzigd, prefix `compact`/`next compact`/`COMPACT next` werken, registratie ongewijzigd (week en view). Alle overige tests groen.
 - T015: README en claude.md beschrijven thumbnail en rand, testReport en gates increment 5 bijgewerkt.
 
+- T016: `SPACER.buffer` is een geldige PNG (begint met de 8-byte PNG-signature, 78 bytes) en `SPACER.name` is `spacer.png`; compact embed: title afgekapt op 60, description precies 2 regels (`<t:start:f>` plus ` (ended)` op regel 1, locatie op regel 2, TBA zonder locatie, locatie afgekapt op 60), `image.url` is `attachment://spacer.png`, thumbnail poster; full card en /event embed ongewijzigd (bestaande tests groen). Command: compact payload heeft `files` met 1 AttachmentBuilder met name `spacer.png`, full payload heeft geen `files`, prefix compact ook `files`. fitEmbeds ongewijzigd.
+- T017: README en claude.md noemen de spacer en de vaste layout.
+
 ## Implementation Notes
 - T001: `AbortSignal.timeout()` gebruikt een unref'd timer, in de test eindigde de event loop voor de abort. Eigen AbortController plus setTimeout met clearTimeout in finally.
 - T001/T002: embed-builder is samen met parse/fetch geschreven, de T002-tests kwamen daarna (geen aparte RED voor T002). Alle 18 tests groen.
@@ -57,3 +62,5 @@
 - T013: deploy weer door Thijmen zelf (sandbox DNS, classifier buiten sandbox).
 - T014 (32bc977): reviewer ronde 1 CHANGES_REQUESTED: de `plainText` sanitization uit T012 was samen met de lijst-embed verwijderd, waardoor de locatie in de compact description weer een markdown-link kon vormen of een newline de regel brak. Fix: helper terug en toegepast op de locatie in alle drie de embeds (/event Where, card Where, compact description) plus test. Les: bij het verwijderen van code de beveiligingshelpers en hun tests apart beoordelen, niet met de feature meenemen. Thumbnail telt niet mee in embed.length, 10 compact embeds passen altijd. setThumbnail gooit op een ongeldige URL, zelfde als setImage in de card (bestaand, index.js vangt het).
 - T015: docs herschreven voor thumbnail en rand per event.
+- T016 (9877c5d): reviewer APPROVED in 1 ronde, PNG byte-voor-byte gedecodeerd (400x1 RGBA transparant, CRC ok). Info meegenomen: plainText ook op de compact titel zodat een newline in de naam de kaarthoogte niet breekt. embed.length telt image en thumbnail niet. Live payload: files 1x spacer.png 78 bytes, elke kaart image attachment://spacer.png, description 2 regels.
+- T017: docs bijgewerkt. Deploy en Discord-klik door Thijmen (PR #3).
