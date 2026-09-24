@@ -52,8 +52,8 @@ attaches its own listeners and call it from `index.js`. See
   defaults to 10 minutes; `0` keeps it forever
 - `GENERAL_WELCOME_TIMEOUT_MS` — how long the #general welcome lingers, defaults
   to 2 minutes; `0` keeps it forever
-- `SVSIT_BASE_URL` — optional override for the svsit.nl origin `/event` reads from,
-  defaults to `https://svsit.nl`
+- `SVSIT_BASE_URL` — optional override for the svsit.nl origin `/event` and `/events`
+  read from, defaults to `https://svsit.nl`
 
 ## After Changing Functionality
 Run all three, in this order, without asking:
@@ -81,6 +81,12 @@ continuing on to `deploy`.
   set to everyone. Gate is Discord's own `MentionEveryone` permission, checked on the
   invoker (`interaction.memberPermissions`) and on the bot (`interaction.appPermissions`)
   before `deferReply`, so the refusal stays ephemeral. No role list in `.env`.
+- `/events [week:this|next]` reads `GET https://svsit.nl/api/events/public` (plain array,
+  no envelope; list items use `name`, `dateEnd`, `poster` instead of `title`, `end_date`,
+  `poster_url`). Week logic (Monday to Sunday in Europe/Amsterdam, date-string based so no
+  DST arithmetic) lives in `lib/week.js`; `fetchPublicEvents` and `buildEventCardEmbed` in
+  `lib/svsit-events.js`; `scripts/events.js` filters, sorts and fits the embeds within
+  Discord's 10 embeds and 6000 characters per message.
 - Two privileged intents are required, both enabled in the Developer Portal or login
   fails: `GuildMembers` (enumerating role holders) and `MessageContent` (reading `%`
   prefix commands).

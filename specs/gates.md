@@ -27,3 +27,16 @@
 | 5. Test | APPROVED | 50/50 tests vers gedraaid, check groen, specs/testReport.md | 2026-09-21 |
 | 6. Deploy | APPROVED | commands geregistreerd met announce-optie, teruggelezen uit Discord, specs/deployLog.md | 2026-09-21 |
 | 9. Launch | PENDING | Thijmen testte de klik lokaal (eigen bot-proces vanuit deze checkout): werkt met en zonder Mention Everyone. Productie-bot wacht nog op push, pull en herstart | - |
+
+## Increment 4: weekoverzicht /events (M10, S3, T009-T011)
+
+| Fase | Status | Approved by | Datum |
+|------|--------|-------------|-------|
+| 0. Intake | APPROVED | vraag Thijmen: events van de week met linkjes en posters; bron live gecheckt | 2026-09-24 |
+| 1. Requirements | APPROVED | M10 en S3 in requirements.md, Won't aangepast, clarify: weekgrens Amsterdam, compacte velden | 2026-09-24 |
+| 2. Design | APPROVED | sectie Weekoverzicht in design.md, geen UI (Discord embed) | 2026-09-24 |
+| 3. Tasks | APPROVED | T009-T011, M10 gedekt door T009-T010, S3 door T010, docs door T011; analyze: geen tegenstrijdigheid met /event, lib/svsit-events.js wordt alleen uitgebreid | 2026-09-24 |
+| 4. Implement | APPROVED | T009 reviewer ronde 2 APPROVED (ronde 1 alleen testdekking), T010 APPROVED plus hercheck op 2 lib-fixes APPROVED; commits a30ad98, a91f984, ffb8abb | 2026-09-24 |
+| 5. Test | APPROVED | 93/93 tests vers gedraaid, check groen (5 commands), live run tegen svsit.nl (this en next week, prefix), specs/testReport.md | 2026-09-24 |
+| 6. Deploy | PENDING | `npm run deploy` faalt in de sandbox (DNS) en is buiten de sandbox geweigerd door de classifier; Thijmen draait `npm run deploy` zelf in de dev-guild, daarna push, PR en pull plus deploy plus restart als sit op sit-srv-01 | - |
+| 9. Launch | PENDING | wacht op: deploy plus 1 echte `/events` klik in de SIT-server | - |

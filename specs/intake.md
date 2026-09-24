@@ -13,3 +13,10 @@ zodat de commissie een event snel in een kanaal kan delen.
 
 ## Project type
 Feature in bestaande SIT-repo. Geen web-UI, geen Figma (Discord rendert de embed).
+
+## Increment 4 (2026-09-24): weekoverzicht
+Vraag Thijmen: "een nieuwe command bij de discord bot van sit dat de events van de week toont met de linkjes en posters".
+Bron: `GET https://svsit.nl/api/events/public` (plain array, geen envelope, live gecheckt 24 sep: 41 events, velden
+id, name, date, dateEnd, location, description, poster, capacity, priceMembers, priceNonMembers, isPaid, status
+next|done|tba, category Social|Code|Career|Game, color). `poster` is gelijk aan `poster_url` van het losse event.
+Alle 7 komende events hebben een poster. Een request volstaat, geen per-event fetch nodig.

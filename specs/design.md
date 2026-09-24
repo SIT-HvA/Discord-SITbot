@@ -63,3 +63,47 @@ Prijzen in centen. 404 geeft `{ data: null, error: 'Event niet gevonden' }`, ook
 
 ## Geen designSystem.md, geen Figma
 Discord rendert de embed. Enige designkeuze is de kleur, die volgt de site.
+
+## Weekoverzicht (M10, S3, increment 4)
+
+### Structuur
+- `lib/week.js`: pure datumlogica, geen Discord.
+  - `localDate(instant, timeZone = 'Europe/Amsterdam') -> 'YYYY-MM-DD'` (Intl en-CA).
+  - `weekDates(now, { weeks = 0, timeZone }) -> string[7]` maandag tot zondag van de week van `now` in die zone, `weeks` verschuift (1 = volgende week). Rekent op datumstrings plus `Date.UTC`, dus geen DST-rekenwerk.
+  - `weekLabel(dates) -> '22 Sep to 28 Sep'` (eigen maandnamen, geen ICU-verschillen).
+- `lib/svsit-events.js` krijgt erbij:
+  - `fetchPublicEvents({ fetch, baseUrl, timeoutMs }) -> { ok: true, events } | { ok: false, reason: 'unavailable' }`. GET `<base>/api/events/public`. Body moet een array zijn waarvan elk item een string `id` en `date` heeft, anders unavailable. Zelfde AbortController-timeout als `fetchEvent`.
+  - `buildEventCardEmbed(item, { now }) -> EmbedBuilder` voor een item uit de lijst (velden `name`, `dateEnd`, `poster` in plaats van `title`, `end_date`, `poster_url`).
+- `scripts/events.js`: slash `/events [week]` plus prefix `events`. Deferren, lijst fetchen, filteren op `weekDates`, sorteren op date, embeds bouwen.
+- Tests: `test/week.test.js`, `test/svsit-events-public.test.js`, `test/events-command.test.js` (fetch geinjecteerd of gestubd, geen netwerk).
+
+### Data (GET /api/events/public, live gecheckt 2026-09-24)
+```
+[ { id, name, date, dateEnd?, location, description?, poster?, capacity?, link?,
+    priceMembers, priceNonMembers, isPaid, status: 'next'|'done'|'tba', type,
+    category: 'Social'|'Code'|'Career'|'Game', color: '#F29E18' }, ... ]
+```
+Plain array, geen envelope. Bij een DB-fout antwoordt de route `[]` met status 500. Geannuleerde events staan er niet in. Optionele velden ontbreken als key (JSON laat undefined weg).
+
+### Card-embed mapping
+| Embed | Bron |
+|---|---|
+| title | name, afgekapt op 256 |
+| url | `https://svsit.nl/events/<id>` |
+| description | description afgekapt op 300, alleen als aanwezig |
+| color | `CATEGORY_COLORS[category.toLowerCase()]`, default social |
+| field When | zelfde als `/event`: `<t:start:F>` plus ` to <t:end:t>` als dateEnd, plus ` (<t:start:R>)` |
+| field Where | location of `TBA`, inline |
+| image | poster als aanwezig |
+| footer | `svsit.nl`, plus `  This event has ended` als voorbij (dateEnd of date + 4h < now) |
+
+### Command-flow
+1. `week` lezen: slash `getString('week')` met choices `this` (default) en `next`; prefix: argument `next` (hoofdletterongevoelig) geeft volgende week.
+2. `deferReply`, dan `fetchPublicEvents()`. Niet ok: `deleteReply` plus ephemeral followUp `svsit.nl did not respond. Try again in a minute.` (prefix: gewone reply).
+3. `dates = weekDates(new Date(), { weeks })`, filter `dates.includes(localDate(item.date))`, sorteer op date oplopend.
+4. Leeg: `editReply({ content: 'No events this week.' })` of `next week`.
+5. Anders `content: 'Events this week: <weekLabel>'` plus `embeds` van max 10 cards. Meer dan 10: content krijgt ` Showing the first 10 of <n>.`
+6. Geen allowedMentions nodig, de content bevat geen mentions.
+
+### Constanten
+`MAX_EMBEDS = 10` (Discord), `CARD_DESCRIPTION_MAX = 300`, tijdzone `Europe/Amsterdam`, `weeks` alleen 0 of 1.
