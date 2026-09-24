@@ -51,5 +51,5 @@
 | 3. Tasks | APPROVED | T012-T013, M11 gedekt door T012, docs door T013; analyze: full-pad ongewijzigd, bestaande tests blijven de regressiecheck | 2026-09-24 |
 | 4. Implement | APPROVED | T012, T014 en T016 elk APPROVED door een verse reviewer (T012 en T014 na 1 fixronde, T016 direct); commits 4bf203d, 32bc977, 9877c5d | 2026-09-24 |
 | 5. Test | APPROVED | 112/112 tests vers gedraaid, check groen (22 files, 5 commands), live compact run met spacer en 2 regels, specs/testReport.md | 2026-09-24 |
-| 6. Deploy | PENDING | Thijmen draait `npm run deploy` in de dev-guild; productie na merge van de PR als sit op sit-srv-01 | - |
-| 9. Launch | PENDING | wacht op 1 klik `/events view:Compact` in dev en daarna in de SIT-server | - |
+| 6. Deploy | APPROVED (dev-guild) | Thijmen: `npm run deploy` in de dev-guild, /events met week en view; productie na merge van PR #3 als sit op sit-srv-01 | 2026-09-24 |
+| 9. Launch | PENDING | Thijmen klikte 24 sep `/events view:Compact` in de dev-guild: kaarten even groot, ziet er goed uit. Wacht op productie: merge PR #3, pull plus deploy plus restart op sit-srv-01, 1 klik in de SIT-server | - |

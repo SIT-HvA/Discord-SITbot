@@ -11,7 +11,7 @@
 
 | 2026-09-24 | `npm run deploy` na increment 4 (/events) vanaf server-14 | In de sandbox EAI_AGAIN op discord.com; buiten de sandbox geweigerd door de auto-mode classifier. Thijmen draaide het zelf in de sessie: Registered 5 command(s) to guild 777898731562336276: /clear-lid, /event, /events, /ping, /restore-lid. Productie (sit-srv-01) volgt na merge van PR #2. |
 | 2026-09-24 ~12:00 UTC | PR #2 gemerged (ca7ed09), pull plus deploy plus restart op sit-srv-01 door SIT (niet door Claude) | Thijmen: `/events` werkt in de SIT-server. Productie draait increment 4. |
-| 2026-09-24 | `npm run deploy` na increment 5 (view-optie) | Door Thijmen zelf te draaien (sandbox DNS, classifier). Verwacht: 5 commands, /events met week en view. |
+| 2026-09-24 | `npm run deploy` na increment 5 (view-optie, compact met spacer) door Thijmen in de dev-guild | 5 commands, /events met week en view. Thijmen klikte view:Compact: kaarten even groot, ziet er goed uit. Productie (sit-srv-01) volgt na merge van PR #3. |
 
 ## Rollback
 Vorige werkende commit: d0b6110 (increment 3, zonder /events; /events weghalen: `git checkout d0b6110 -- scripts lib test` en `npm run deploy`), daarvoor ca2c2bf (increment 2 zonder announce), daarvoor 6f0b645 (increment 1 zonder vertaling), daarvoor b8964a2 (zonder /event). Terug: `git checkout b8964a2 -- scripts lib` en opnieuw `npm run deploy` (registreert dan 3 commands, /event verdwijnt uit de guild).
