@@ -124,3 +124,18 @@ Plain array, geen envelope. Bij een DB-fout antwoordt de route `[]` met status 5
 1. `view = getString('view') ?? 'full'`; prefix: argument `compact` (hoofdletterongevoelig) geeft compact, `next` blijft werken, volgorde vrij.
 2. Fetch, filter, sorteer en de lege melding zijn gelijk voor beide views.
 3. full: ongewijzigd (content-regel plus fitEmbeds). compact: `{ embeds: [buildWeekListEmbed(events, { title: 'Events this week: ' + weekLabel(dates), now })] }`, geen content.
+
+### Herzien (T014): compact als kleine embed per event
+Vervangt de lijst-embed hierboven. `buildWeekListEmbed`, `weekListLine`, `plainText`, `LIST_NAME_MAX`, `LIST_LOCATION_MAX` en `DESCRIPTION_LIMIT` gaan weg (geen dode code).
+- `lib/svsit-events.js`: `buildEventCompactEmbed(item, { now }) -> EmbedBuilder`:
+
+| Embed | Bron |
+|---|---|
+| title | name afgekapt op 256 |
+| url | `https://svsit.nl/events/<id>` |
+| color | categoriekleur, default social |
+| description | `<t:start:f>  ` plus location (of `TBA`, afgekapt op `COMPACT_LOCATION_MAX = 100`) plus ` (ended)` als hasEnded |
+| thumbnail | poster als aanwezig |
+| geen fields, geen image, geen footer | |
+
+- `scripts/events.js`: `const buildEmbed = view === VIEWS.compact ? buildEventCompactEmbed : buildEventCardEmbed;` en daarna dezelfde `fitEmbeds`, content-regel en noot als full. De aparte compact-tak met `buildWeekListEmbed` verdwijnt.

@@ -45,24 +45,25 @@ Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claud
 - T009 ronde 1 CHANGES_REQUESTED (alleen testdekking: geen test zonder dateEnd), 2 tests toegevoegd, ronde 2 APPROVED. Reviewer herrekende de weekgrenzen rond DST 25 okt 2026 en de UTC-middernacht-rollover met Intl: correct.
 - T010 ronde 1 APPROVED met 2 non-blocking bevindingen in de lib (RangeError bij ongeldige date, 6000-tekenlimiet), direct gefixt in ffb8abb en a91f984 met tests, hercheck gevraagd.
 
-## Increment 5: compact view (M11, T012-T013)
+## Increment 5: compact view (M11, T012-T015)
 
-Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claude, vers gedraaid na 4bf203d.
+Datum: 2026-09-24. Machine: server-14 (debian), Node v20.19.2. Uitvoerder: Claude, vers gedraaid na 32bc977.
 
 | # | Check | Resultaat |
 |---|---|---|
 | 1 | Lint + anti-slop | N/A: geen linter. Handmatig: geen emoji, geen nieuwe deps. |
 | 2 | Types | N/A. `npm run check`: 21 files, groen. |
-| 3 | Unit tests | `npm test`: 107 tests, 107 pass, 0 fail. RED-bewijs builder: 13 fails voor implementatie. Nieuw: 8 tests buildWeekListEmbed, 6 tests view/prefix compact, registratietest uitgebreid. |
-| 4 | E2E | Live run 24 sep tegen svsit.nl: `view:compact` gaf 1 embed, geen content, titel `Events this week: 21 Sep to 27 Sep`, 1 regel `<t:..:f>  [De Digitale Schijf van Vijf ...](https://svsit.nl/events/e06acbfd-...)  REC Impact (Roeterseiland) (ended)`; `week:next` gaf titel `Events next week: 28 Sep to 4 Oct` met 2 regels (Lets SIT zaalvoetbal USC Sporthal, NEMO AI Hackathon NEMO Science Museum); prefix `%events NEXT compact` zelfde embed met repliedUser false. Discord-klik door Thijmen na deploy. |
+| 3 | Unit tests | `npm test`: 110 tests, 110 pass, 0 fail. RED-bewijs builders: T012 13 fails, T014 15 fails voor implementatie. |
+| 4 | E2E | Live run 24 sep tegen svsit.nl na T014: `view:compact` gaf content `Events this week: 21 Sep to 27 Sep` plus 1 kleine embed (De Digitale Schijf van Vijf, kleur career, thumbnail ja, image nee, 0 fields, geen footer, description `<t:..:f>  REC Impact (Roeterseiland) (ended)`, 108 tekens); `week:next` gaf 2 embeds (Lets SIT zaalvoetbal social, NEMO AI Hackathon career) elk met thumbnail; prefix `%events compact NEXT` zelfde payload. Discord-klik door Thijmen na deploy. |
 | 5 | Build | `npm run check`: 5 commands valid, prefixes %event, %events, %ping. |
 | 6 | Lighthouse / SEO | N/A. |
-| 7 | Security | Reviewer vond link-injectie via het locatieveld (markdown `[tekst](url)`), gefixt met `plainText` op naam en locatie; test bewijst 1 link per regel en 1 regel per event. Mentions in embeds pingen niet (Discord-gedrag). URL altijd vast `https://svsit.nl/events/<uuid>`. |
+| 7 | Security | Reviewers vonden 2x link-injectie via het locatieveld (T012 in de lijst-regel, T014 opnieuw na het verwijderen van de helper). `plainText` staat nu op de locatie in alle drie de embeds, test bewijst 1 regel en geen `](`. Mentions in embeds pingen niet. URL altijd vast `https://svsit.nl/events/<uuid>`. |
 | 8 | Accessibility | N/A. |
 | 9 | Bundle size | N/A. |
 | 10 | Mobile | N/A. |
-| 11 | Error scenarios | Lege week compact (this en next) zelfde melding als full, fetch-fout zelfde ephemeral pad (gedeelde eventsReply), 100 items met lange namen onder 4096 tekens met slotregel `and N more on svsit.nl`, locatie ontbreekt (TBA), event voorbij ((ended)), naam met haken en newlines. |
+| 11 | Error scenarios | Lege week compact (this en next) zelfde melding als full, fetch-fout zelfde ephemeral pad (gedeelde eventsReply), 12 compact events geeft 10 plus noot, geen poster geeft geen thumbnail, locatie ontbreekt (TBA), afkappen locatie 100 en titel 256, voorbij ((ended)) met en zonder dateEnd, locatie met haken en newlines. |
 | 12 | i18n | N/A. |
 
 ### Review increment 5
-- T012 ronde 1 CHANGES_REQUESTED (link-injectie via location, hoog), gefixt in dezelfde commit met plainText plus test; ronde 2 APPROVED. Info gelaten: backticks in namen zijn cosmetisch, bestaand patroon.
+- T012 ronde 1 CHANGES_REQUESTED (link-injectie via location), gefixt, ronde 2 APPROVED (4bf203d).
+- T014 (compact herzien naar kleine embeds met thumbnail) ronde 1 CHANGES_REQUESTED (zelfde klasse: sanitization met de lijst-embed verwijderd), gefixt in 32bc977 met plainText op alle embeds plus test; ronde 2 APPROVED.

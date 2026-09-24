@@ -49,7 +49,7 @@
 | 1. Requirements | APPROVED | M11 in requirements.md, clarify: full blijft default, compact is 1 embed | 2026-09-24 |
 | 2. Design | APPROVED | sectie Compact view in design.md, geen UI | 2026-09-24 |
 | 3. Tasks | APPROVED | T012-T013, M11 gedekt door T012, docs door T013; analyze: full-pad ongewijzigd, bestaande tests blijven de regressiecheck | 2026-09-24 |
-| 4. Implement | APPROVED | T012 reviewer ronde 1 CHANGES_REQUESTED (link-injectie via location), gefixt, ronde 2 APPROVED; commit 4bf203d | 2026-09-24 |
-| 5. Test | APPROVED | 107/107 tests vers gedraaid, check groen, live compact run tegen svsit.nl (this en next, prefix), specs/testReport.md | 2026-09-24 |
+| 4. Implement | APPROVED | T012 APPROVED (4bf203d); compact herzien in T014 (32bc977): ronde 1 CHANGES_REQUESTED (location-sanitization), ronde 2 APPROVED | 2026-09-24 |
+| 5. Test | APPROVED | 110/110 tests vers gedraaid, check groen, live compact run met thumbnail (this en next, prefix), specs/testReport.md | 2026-09-24 |
 | 6. Deploy | PENDING | Thijmen draait `npm run deploy` in de dev-guild; productie na merge van de PR als sit op sit-srv-01 | - |
 | 9. Launch | PENDING | wacht op 1 klik `/events view:Compact` in dev en daarna in de SIT-server | - |
