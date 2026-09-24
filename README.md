@@ -36,6 +36,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
 | `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description, set `announce` to ping @everyone (needs Mention Everyone). Also `%event <link> [nl\|en] [announce]`. |
+| `/events` | Lists the svsit.nl events of this week, one embed per event with the poster and a link to the event page. Pick `week` for next week. Also `%events [next]`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -110,6 +111,25 @@ bot. The prefix form is `%event <link> announce`, optionally combined with
 
 The data comes from the public `GET /api/events/<id>` endpoint. Point the bot at
 another checkout of the site with `SVSIT_BASE_URL` in `.env`.
+
+### `/events`
+
+Posts every svsit.nl event of the current week (Monday to Sunday, Amsterdam
+time) as one message: a line like `Events this week: 22 Sep to 28 Sep` followed
+by one embed per event, sorted by date. Each embed has the title linking to the
+event page, a short description, date and time as Discord timestamps, the
+location and the poster as image. The colour follows the category colour on
+svsit.nl. Events earlier in the week that already happened stay in the list
+with a footer saying so. Pick `week:Next week` to look one week ahead.
+
+A week without events answers `No events this week.` (or `next week`). Discord
+allows 10 embeds and 6000 characters per message, so a busy week shows the
+first events that fit and says how many there are in total. If svsit.nl does
+not answer within 8 seconds the error is ephemeral. The prefix form is
+`%events` or `%events next`, posted publicly.
+
+The data comes from the public `GET /api/events/public` list, the same
+`SVSIT_BASE_URL` override applies.
 
 ### `/clear-lid`
 
