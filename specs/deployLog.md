@@ -9,7 +9,7 @@
 
 | 2026-09-22 09:12 UTC | `git pull` en `systemctl restart discord-sitbot` op sit-srv-01 als user sit (niet door Claude, game-admin heeft daar geen rechten) | Repo op 311c747, node-proces gestart 09:12:35, 16 s na de pull. Productie draait /event met language en announce. discord.js 14.27.0, node v24. |
 
-| 2026-09-24 | `npm run deploy` na increment 4 (/events) vanaf server-14 | In de sandbox EAI_AGAIN op discord.com; buiten de sandbox geweigerd door de auto-mode classifier. NOG NIET GEREGISTREERD, Thijmen draait `npm run deploy` zelf (dev-guild) en sit op sit-srv-01 (productie). Verwacht: 5 commands. |
+| 2026-09-24 | `npm run deploy` na increment 4 (/events) vanaf server-14 | In de sandbox EAI_AGAIN op discord.com; buiten de sandbox geweigerd door de auto-mode classifier. Thijmen draaide het zelf in de sessie: Registered 5 command(s) to guild 777898731562336276: /clear-lid, /event, /events, /ping, /restore-lid. Productie (sit-srv-01) volgt na merge van PR #2. |
 
 ## Rollback
 Vorige werkende commit: d0b6110 (increment 3, zonder /events), daarvoor ca2c2bf (increment 2 zonder announce), daarvoor 6f0b645 (increment 1 zonder vertaling), daarvoor b8964a2 (zonder /event). Terug: `git checkout b8964a2 -- scripts lib` en opnieuw `npm run deploy` (registreert dan 3 commands, /event verdwijnt uit de guild).
