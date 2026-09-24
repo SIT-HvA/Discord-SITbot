@@ -14,7 +14,7 @@ const WEEK_OFFSETS = { this: 0, next: 1 };
 const WEEK_LABELS = { this: 'this week', next: 'next week' };
 const NEXT_ARG = 'next';
 const VIEWS = { full: 'full', compact: 'compact' };
-const COMPACT_ARG = 'compact';
+const FULL_ARG = 'full';
 
 /**
  * Keeps the leading embeds that fit in one Discord message: at most
@@ -37,7 +37,7 @@ function fitEmbeds(embeds) {
  * `weekKey` (`'this'` or `'next'`) in the requested `view`, or `{ error }`
  * when svsit.nl is unreachable. Shared by the slash and the prefix path.
  */
-async function eventsReply(weekKey, view = VIEWS.full, now = new Date()) {
+async function eventsReply(weekKey, view = VIEWS.compact, now = new Date()) {
   const result = await fetchPublicEvents();
   if (!result.ok) return { error: MESSAGES.unavailable };
 
@@ -79,13 +79,13 @@ module.exports = {
     .addStringOption((option) =>
       option
         .setName('view')
-        .setDescription('One embed per event, or one compact list.')
-        .addChoices({ name: 'Full', value: 'full' }, { name: 'Compact', value: 'compact' })
+        .setDescription('Compact cards (default) or one full embed per event.')
+        .addChoices({ name: 'Compact', value: 'compact' }, { name: 'Full', value: 'full' })
     ),
 
   async execute(interaction) {
     const weekKey = interaction.options.getString('week') ?? 'this';
-    const view = interaction.options.getString('view') ?? VIEWS.full;
+    const view = interaction.options.getString('view') ?? VIEWS.compact;
 
     // The list fetch can take longer than Discord's 3 second reply window.
     await interaction.deferReply();
@@ -105,10 +105,10 @@ module.exports = {
   prefix: 'events',
 
   async runPrefix(message, args) {
-    // `%events [next] [compact]`, case-insensitive, any order, anything else ignored.
+    // `%events [next] [full]`, case-insensitive, any order, anything else ignored.
     const flags = args.map((arg) => arg.toLowerCase());
     const weekKey = flags.includes(NEXT_ARG) ? 'next' : 'this';
-    const view = flags.includes(COMPACT_ARG) ? VIEWS.compact : VIEWS.full;
+    const view = flags.includes(FULL_ARG) ? VIEWS.full : VIEWS.compact;
     const reply = await eventsReply(weekKey, view);
 
     await message.reply({
