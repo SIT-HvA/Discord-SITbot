@@ -52,4 +52,4 @@
 | 4. Implement | APPROVED | T012, T014, T016 en T018 elk APPROVED door een verse reviewer (T012 en T014 na 1 fixronde); commits 4bf203d, 32bc977, 9877c5d, 8ecc293 | 2026-09-24 |
 | 5. Test | APPROVED | 112/112 tests vers gedraaid (reviewer T018 herhaalde de RED-run: 6 fails op de oude code), check groen (22 files, 5 commands), live compact run met spacer, specs/testReport.md | 2026-09-24 |
 | 6. Deploy | APPROVED (dev-guild) | Thijmen: `npm run deploy` in de dev-guild, /events met week en view; productie na merge van PR #3 als sit op sit-srv-01 | 2026-09-24 |
-| 9. Launch | PENDING | Thijmen klikte 24 sep `/events view:Compact` in de dev-guild: kaarten even groot, ziet er goed uit. Na T018 opnieuw gedeployed en geklikt in dev: compact default werkt. Wacht op productie: merge PR #3, pull plus deploy plus restart op sit-srv-01, 1 klik in de SIT-server | - |
+| 9. Launch | APPROVED | PR #3 gemerged (6f9eb41, 13:24 UTC). Thijmen: bot staat op sit-srv-01 en `/events` (compact default) werkt in de SIT-server; dev-klikken eerder ook voor compact en full. Servercommit niet zelf gecheckt: sit-srv-01 onbereikbaar vanuit de sandbox | 2026-09-24 |
