@@ -1,6 +1,7 @@
-const { InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { AttachmentBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { fetchPublicEvents, buildEventCardEmbed, buildEventCompactEmbed } = require('../lib/svsit-events');
 const { weekDates, weekLabel, localDate } = require('../lib/week');
+const { SPACER } = require('../lib/spacer');
 
 const MESSAGES = {
   unavailable: 'svsit.nl did not respond. Try again in a minute.',
@@ -51,7 +52,13 @@ async function eventsReply(weekKey, view = VIEWS.full, now = new Date()) {
   const buildEmbed = view === VIEWS.compact ? buildEventCompactEmbed : buildEventCardEmbed;
   const embeds = fitEmbeds(events.map((event) => buildEmbed(event, { now })));
   const note = embeds.length < events.length ? ` Showing the first ${embeds.length} of ${events.length}.` : '';
-  return { content: `Events ${label}: ${weekLabel(dates)}${note}`, embeds };
+  const payload = { content: `Events ${label}: ${weekLabel(dates)}${note}`, embeds };
+
+  // Compact cards reference the spacer as `attachment://spacer.png`, which only
+  // resolves when the file rides along on the message that carries the embeds.
+  return view === VIEWS.compact
+    ? { ...payload, files: [new AttachmentBuilder(SPACER.buffer, { name: SPACER.name })] }
+    : payload;
 }
 
 module.exports = {

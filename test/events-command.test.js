@@ -69,6 +69,7 @@ describe('/events execute (this week)', () => {
       ['Monday event', 'Wednesday event', 'Friday event']
     );
     assert.equal(interaction.calls.length, 2);
+    assert.equal(reply.files, undefined);
   });
 
   test('says there are no events this week when the week is empty', async () => {
@@ -170,8 +171,10 @@ describe('/events execute (compact view)', () => {
     for (const embed of reply.embeds) {
       const json = embed.toJSON();
       assert.equal(json.thumbnail.url, poster);
-      assert.equal(json.image, undefined);
+      assert.equal(json.image.url, 'attachment://spacer.png');
     }
+    assert.equal(reply.files.length, 1);
+    assert.equal(reply.files[0].name, 'spacer.png');
   });
 
   test('12 compact events shows only the first 10 and notes the total', async () => {
@@ -184,6 +187,7 @@ describe('/events execute (compact view)', () => {
     const reply = interaction.calls[1][1];
     assert.equal(reply.embeds.length, 10);
     assert.ok(reply.content.endsWith(' Showing the first 10 of 12.'), reply.content);
+    assert.equal(reply.files.length, 1);
   });
 
   test('view: compact with week: next uses the next week title', async () => {
@@ -195,6 +199,7 @@ describe('/events execute (compact view)', () => {
 
     const reply = interaction.calls[1][1];
     assert.ok(reply.content.startsWith('Events next week: '), reply.content);
+    assert.equal(reply.files.length, 1);
   });
 
   test('view: compact with an empty week gives the same "no events" message', async () => {
@@ -221,7 +226,9 @@ describe('%events prefix (compact view)', () => {
     const json = message.calls[0].embeds[0].toJSON();
     assert.equal(json.title, 'This week event');
     assert.equal(json.thumbnail.url, poster);
-    assert.equal(json.image, undefined);
+    assert.equal(json.image.url, 'attachment://spacer.png');
+    assert.equal(message.calls[0].files.length, 1);
+    assert.equal(message.calls[0].files[0].name, 'spacer.png');
     assert.deepEqual(message.calls[0].allowedMentions, { repliedUser: false });
   });
 
@@ -233,7 +240,8 @@ describe('%events prefix (compact view)', () => {
     await command.runPrefix(message, ['next', 'compact']);
 
     assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
-    assert.equal(message.calls[0].embeds[0].toJSON().image, undefined);
+    assert.equal(message.calls[0].embeds[0].toJSON().image.url, 'attachment://spacer.png');
+    assert.equal(message.calls[0].files.length, 1);
   });
 
   test('"%events COMPACT next" is case-insensitive and order-independent', async () => {
@@ -244,7 +252,8 @@ describe('%events prefix (compact view)', () => {
     await command.runPrefix(message, ['COMPACT', 'next']);
 
     assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
-    assert.equal(message.calls[0].embeds[0].toJSON().image, undefined);
+    assert.equal(message.calls[0].embeds[0].toJSON().image.url, 'attachment://spacer.png');
+    assert.equal(message.calls[0].files.length, 1);
   });
 });
 
@@ -259,6 +268,7 @@ describe('%events prefix', () => {
     assert.equal(message.calls.length, 1);
     assert.ok(message.calls[0].content.startsWith('Events this week: '));
     assert.equal(message.calls[0].embeds[0].toJSON().title, 'This week event');
+    assert.equal(message.calls[0].files, undefined);
     assert.deepEqual(message.calls[0].allowedMentions, { repliedUser: false });
   });
 
