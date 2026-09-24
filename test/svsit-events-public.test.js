@@ -63,13 +63,15 @@ describe('fetchPublicEvents', () => {
     assert.deepEqual(await fetchPublicEvents({ fetch }), { ok: false, reason: 'unavailable' });
   });
 
-  test('returns unavailable when an item is missing a string id or date', async () => {
+  test('returns unavailable when an item is missing a string id or a parseable date', async () => {
     const missingId = async () => okResponse([{ ...baseItem(), id: undefined }]);
     const missingDate = async () => okResponse([{ ...baseItem(), date: undefined }]);
     const numericId = async () => okResponse([{ ...baseItem(), id: 123 }]);
     const numericDate = async () => okResponse([{ ...baseItem(), date: 123 }]);
 
-    for (const fetch of [missingId, missingDate, numericId, numericDate]) {
+    const unparseableDate = async () => okResponse([{ ...baseItem(), date: 'not-a-date' }]);
+
+    for (const fetch of [missingId, missingDate, numericId, numericDate, unparseableDate]) {
       assert.deepEqual(await fetchPublicEvents({ fetch }), { ok: false, reason: 'unavailable' });
     }
   });
