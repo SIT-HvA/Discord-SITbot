@@ -1,6 +1,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { fetchPublicEvents, buildEventCardEmbed } = require('../lib/svsit-events');
+const { fetchPublicEvents, buildEventCardEmbed, buildWeekListEmbed, eventPageUrl } = require('../lib/svsit-events');
 
 const ID = 'e06acbfd-13d1-4002-9546-7066420762ef';
 
@@ -165,5 +165,103 @@ describe('buildEventCardEmbed', () => {
 
   test('picks the color for a known category, case-insensitively', () => {
     assert.equal(buildEventCardEmbed({ ...baseItem(), category: 'Code' }, { now: BEFORE }).toJSON().color, 0x22c55e);
+  });
+});
+
+describe('buildWeekListEmbed', () => {
+  test('sets title, social color and svsit.nl footer, no image and no fields', () => {
+    const json = buildWeekListEmbed([], { title: 'Events this week: 22 Sep to 28 Sep', now: BEFORE }).toJSON();
+
+    assert.equal(json.title, 'Events this week: 22 Sep to 28 Sep');
+    assert.equal(json.color, 0xf29e18);
+    assert.equal(json.footer.text, 'svsit.nl');
+    assert.equal(json.image, undefined);
+    assert.equal(json.fields, undefined);
+  });
+
+  test('one line per item with timestamp, link and location, in the given order', () => {
+    const first = { ...baseItem(), name: 'Alpha', date: '2026-09-30T09:00:00+00:00', dateEnd: undefined, location: 'USC' };
+    const second = {
+      ...baseItem(),
+      id: 'e06acbfd-13d1-4002-9546-000000000002',
+      name: 'Beta',
+      date: '2026-10-01T09:00:00+00:00',
+      dateEnd: undefined,
+      location: 'Wibautstraat',
+    };
+    const json = buildWeekListEmbed([first, second], { title: 't', now: BEFORE }).toJSON();
+
+    const startA = Math.floor(new Date(first.date).getTime() / 1000);
+    const startB = Math.floor(new Date(second.date).getTime() / 1000);
+    assert.equal(
+      json.description,
+      `<t:${startA}:f>  [Alpha](${eventPageUrl(first.id)})  USC\n<t:${startB}:f>  [Beta](${eventPageUrl(second.id)})  Wibautstraat`
+    );
+  });
+
+  test('appends (ended) for events that already ended', () => {
+    const item1 = { ...baseItem(), name: 'Old', dateEnd: undefined };
+    const notEnded = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
+    const ended = buildWeekListEmbed([item1], { title: 't', now: AFTER }).toJSON().description;
+
+    assert.ok(!notEnded.endsWith(' (ended)'), notEnded);
+    assert.ok(ended.endsWith(' (ended)'), ended);
+  });
+
+  test('falls back to TBA without a location', () => {
+    const item1 = { ...baseItem(), location: undefined };
+    const json = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON();
+    assert.ok(json.description.includes('TBA'), json.description);
+  });
+
+  test('truncates name to 80 and location to 60, replacing square brackets with round ones', () => {
+    const item1 = { ...baseItem(), name: `[Big] Event ${'N'.repeat(100)}`, location: 'L'.repeat(100) };
+    const line = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
+
+    const linkMatch = line.match(/^<t:\d+:f>  \[(.*)\]\(/);
+    assert.ok(linkMatch, line);
+    const linkedName = linkMatch[1];
+    assert.ok(!linkedName.includes('['), linkedName);
+    assert.ok(!linkedName.includes(']'), linkedName);
+    assert.ok(linkedName.startsWith('(Big) Event'), linkedName);
+    assert.equal(linkedName.length, 80);
+
+    const afterUrl = line.split(')  ')[1];
+    assert.equal(afterUrl.length, 60);
+  });
+
+  test('a location with markdown link syntax or newlines cannot inject a link or break the line', () => {
+    const item1 = {
+      ...baseItem(),
+      name: 'Normal\nevent',
+      location: '[Click here](https://evil.example.com)\r\nroom 2',
+    };
+    const line = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
+
+    assert.equal(line.split('\n').length, 1, line);
+    assert.equal((line.match(/\]\(/g) || []).length, 1, line);
+    assert.ok(line.includes('[Normal event](https://svsit.nl/events/'), line);
+    assert.ok(line.endsWith('(Click here)(https://evil.example.com) room 2'), line);
+  });
+
+  test('keeps items in the order given, does not re-sort', () => {
+    const later = { ...baseItem(), id: 'e06acbfd-13d1-4002-9546-000000000003', name: 'Later', date: '2026-10-05T09:00:00+00:00' };
+    const earlier = { ...baseItem(), id: 'e06acbfd-13d1-4002-9546-000000000004', name: 'Earlier', date: '2026-09-25T09:00:00+00:00' };
+    const json = buildWeekListEmbed([later, earlier], { title: 't', now: BEFORE }).toJSON();
+
+    assert.ok(json.description.indexOf('Later') < json.description.indexOf('Earlier'), json.description);
+  });
+
+  test('keeps the description under 4096 with a trailing "more" line when 100 long items do not all fit', () => {
+    const items = Array.from({ length: 100 }, (_, i) => ({
+      ...baseItem(),
+      id: `e06acbfd-13d1-4002-9546-${String(i).padStart(12, '0')}`,
+      name: 'N'.repeat(80),
+      location: 'L'.repeat(60),
+    }));
+    const json = buildWeekListEmbed(items, { title: 't', now: BEFORE }).toJSON();
+
+    assert.ok(json.description.length <= 4096, json.description.length);
+    assert.ok(/and \d+ more on svsit\.nl$/.test(json.description), json.description);
   });
 });
