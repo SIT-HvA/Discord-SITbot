@@ -1,6 +1,7 @@
-const { InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
-const { fetchPublicEvents, buildEventCardEmbed } = require('../lib/svsit-events');
+const { AttachmentBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { fetchPublicEvents, buildEventCardEmbed, buildEventCompactEmbed } = require('../lib/svsit-events');
 const { weekDates, weekLabel, localDate } = require('../lib/week');
+const { SPACER } = require('../lib/spacer');
 
 const MESSAGES = {
   unavailable: 'svsit.nl did not respond. Try again in a minute.',
@@ -12,6 +13,8 @@ const MAX_EMBED_CHARS = 6000;
 const WEEK_OFFSETS = { this: 0, next: 1 };
 const WEEK_LABELS = { this: 'this week', next: 'next week' };
 const NEXT_ARG = 'next';
+const VIEWS = { full: 'full', compact: 'compact' };
+const FULL_ARG = 'full';
 
 /**
  * Keeps the leading embeds that fit in one Discord message: at most
@@ -31,10 +34,10 @@ function fitEmbeds(embeds) {
 
 /**
  * Builds the reply payload for the weekly overview: the list of events for
- * `weekKey` (`'this'` or `'next'`), or `{ error }` when svsit.nl is
- * unreachable. Shared by the slash and the prefix path.
+ * `weekKey` (`'this'` or `'next'`) in the requested `view`, or `{ error }`
+ * when svsit.nl is unreachable. Shared by the slash and the prefix path.
  */
-async function eventsReply(weekKey, now = new Date()) {
+async function eventsReply(weekKey, view = VIEWS.compact, now = new Date()) {
   const result = await fetchPublicEvents();
   if (!result.ok) return { error: MESSAGES.unavailable };
 
@@ -46,9 +49,16 @@ async function eventsReply(weekKey, now = new Date()) {
   const label = WEEK_LABELS[weekKey];
   if (events.length === 0) return { content: `No events ${label}.` };
 
-  const embeds = fitEmbeds(events.map((event) => buildEventCardEmbed(event, { now })));
+  const buildEmbed = view === VIEWS.compact ? buildEventCompactEmbed : buildEventCardEmbed;
+  const embeds = fitEmbeds(events.map((event) => buildEmbed(event, { now })));
   const note = embeds.length < events.length ? ` Showing the first ${embeds.length} of ${events.length}.` : '';
-  return { content: `Events ${label}: ${weekLabel(dates)}${note}`, embeds };
+  const payload = { content: `Events ${label}: ${weekLabel(dates)}${note}`, embeds };
+
+  // Compact cards reference the spacer as `attachment://spacer.png`, which only
+  // resolves when the file rides along on the message that carries the embeds.
+  return view === VIEWS.compact
+    ? { ...payload, files: [new AttachmentBuilder(SPACER.buffer, { name: SPACER.name })] }
+    : payload;
 }
 
 module.exports = {
@@ -65,14 +75,21 @@ module.exports = {
         .setName('week')
         .setDescription('Which week to show.')
         .addChoices({ name: 'This week', value: 'this' }, { name: 'Next week', value: 'next' })
+    )
+    .addStringOption((option) =>
+      option
+        .setName('view')
+        .setDescription('Compact cards (default) or one full embed per event.')
+        .addChoices({ name: 'Compact', value: 'compact' }, { name: 'Full', value: 'full' })
     ),
 
   async execute(interaction) {
     const weekKey = interaction.options.getString('week') ?? 'this';
+    const view = interaction.options.getString('view') ?? VIEWS.compact;
 
     // The list fetch can take longer than Discord's 3 second reply window.
     await interaction.deferReply();
-    const reply = await eventsReply(weekKey);
+    const reply = await eventsReply(weekKey, view);
 
     if (reply.error) {
       // The public deferred reply cannot become ephemeral, so clear it and
@@ -88,9 +105,11 @@ module.exports = {
   prefix: 'events',
 
   async runPrefix(message, args) {
-    // `%events [next]`, case-insensitive, anything else is ignored.
-    const weekKey = args.some((arg) => arg.toLowerCase() === NEXT_ARG) ? 'next' : 'this';
-    const reply = await eventsReply(weekKey);
+    // `%events [next] [full]`, case-insensitive, any order, anything else ignored.
+    const flags = args.map((arg) => arg.toLowerCase());
+    const weekKey = flags.includes(NEXT_ARG) ? 'next' : 'this';
+    const view = flags.includes(FULL_ARG) ? VIEWS.full : VIEWS.compact;
+    const reply = await eventsReply(weekKey, view);
 
     await message.reply({
       ...(reply.error ? { content: reply.error } : reply),

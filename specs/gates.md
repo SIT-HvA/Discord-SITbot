@@ -40,3 +40,16 @@
 | 5. Test | APPROVED | 93/93 tests vers gedraaid, check groen (5 commands), live run tegen svsit.nl (this en next week, prefix), specs/testReport.md | 2026-09-24 |
 | 6. Deploy | APPROVED (dev-guild) | Thijmen: `npm run deploy` registreerde 5 commands met /events in de dev-guild; PR #2 open, productie op sit-srv-01 na merge (pull, deploy, restart als sit) | 2026-09-24 |
 | 9. Launch | APPROVED | PR #2 gemerged (ca7ed09, 12:02 UTC). Thijmen: bot staat op sit-srv-01 en `/events` werkt in de SIT-server (dev-guild eerder ook, beide weken). Servercommit niet zelf gecheckt: sit-srv-01 onbereikbaar vanuit de sandbox | 2026-09-24 |
+
+## Increment 5: compact view (M11, T012-T013)
+
+| Fase | Status | Approved by | Datum |
+|------|--------|-------------|-------|
+| 0. Intake | APPROVED | vraag Thijmen: compact lijstje naast de bestaande full view | 2026-09-24 |
+| 1. Requirements | APPROVED | M11 in requirements.md, clarify: full blijft default, compact is 1 embed | 2026-09-24 |
+| 2. Design | APPROVED | sectie Compact view in design.md, geen UI | 2026-09-24 |
+| 3. Tasks | APPROVED | T012-T013, M11 gedekt door T012, docs door T013; analyze: full-pad ongewijzigd, bestaande tests blijven de regressiecheck | 2026-09-24 |
+| 4. Implement | APPROVED | T012, T014, T016 en T018 elk APPROVED door een verse reviewer (T012 en T014 na 1 fixronde); commits 4bf203d, 32bc977, 9877c5d, 8ecc293 | 2026-09-24 |
+| 5. Test | APPROVED | 112/112 tests vers gedraaid (reviewer T018 herhaalde de RED-run: 6 fails op de oude code), check groen (22 files, 5 commands), live compact run met spacer, specs/testReport.md | 2026-09-24 |
+| 6. Deploy | APPROVED (dev-guild) | Thijmen: `npm run deploy` in de dev-guild, /events met week en view; productie na merge van PR #3 als sit op sit-srv-01 | 2026-09-24 |
+| 9. Launch | PENDING | Thijmen klikte 24 sep `/events view:Compact` in de dev-guild: kaarten even groot, ziet er goed uit. Na T018 opnieuw gedeployed en geklikt in dev: compact default werkt. Wacht op productie: merge PR #3, pull plus deploy plus restart op sit-srv-01, 1 klik in de SIT-server | - |

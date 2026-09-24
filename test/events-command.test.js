@@ -5,12 +5,12 @@ const { weekDates } = require('../lib/week');
 const command = require('../scripts/events');
 
 // Records every reply-style call so the tests can assert on the exact sequence.
-function fakeInteraction(week = null) {
+function fakeInteraction(week = null, view = null) {
   const calls = [];
   const record = (name) => async (payload) => { calls.push([name, payload]); };
   return {
     calls,
-    options: { getString: (name) => (name === 'week' ? week : null) },
+    options: { getString: (name) => (name === 'week' ? week : name === 'view' ? view : null) },
     deferReply: record('deferReply'),
     deleteReply: record('deleteReply'),
     followUp: record('followUp'),
@@ -38,15 +38,16 @@ const nextWeekDates = weekDates(new Date(), { weeks: 1 });
 let idCounter = 0;
 const nextId = () => `e06acbfd-13d1-4002-9546-${String(idCounter++).padStart(12, '0')}`;
 
-const item = (date, name) => ({
+const item = (date, name, extra = {}) => ({
   id: nextId(),
   name,
   date,
   location: 'USC',
   category: 'Social',
+  ...extra,
 });
 
-describe('/events execute (this week)', () => {
+describe('/events execute (this week, view: full)', () => {
   test('defers, then edits the reply with this week\'s events sorted by date (M10)', async () => {
     const outOfWeek = item('2000-01-01T13:00:00+00:00', 'Old event');
     const first = item(`${thisWeekDates[0]}T09:00:00+00:00`, 'Monday event');
@@ -55,7 +56,7 @@ describe('/events execute (this week)', () => {
     const nextWeekEvent = item(`${nextWeekDates[1]}T13:00:00+00:00`, 'Next week event');
 
     globalThis.fetch = async () => jsonResponse([outOfWeek, second, nextWeekEvent, first, third]);
-    const interaction = fakeInteraction();
+    const interaction = fakeInteraction(null, 'full');
 
     await command.execute(interaction);
 
@@ -68,6 +69,7 @@ describe('/events execute (this week)', () => {
       ['Monday event', 'Wednesday event', 'Friday event']
     );
     assert.equal(interaction.calls.length, 2);
+    assert.equal(reply.files, undefined);
   });
 
   test('says there are no events this week when the week is empty', async () => {
@@ -82,7 +84,7 @@ describe('/events execute (this week)', () => {
   test('shows only the first 10 embeds and notes the total past 10 events', async () => {
     const events = Array.from({ length: 12 }, (_, i) => item(`${thisWeekDates[i % 7]}T0${i % 9}:00:00+00:00`, `Event ${i}`));
     globalThis.fetch = async () => jsonResponse(events);
-    const interaction = fakeInteraction();
+    const interaction = fakeInteraction(null, 'full');
 
     await command.execute(interaction);
 
@@ -99,7 +101,7 @@ describe('/events execute (this week)', () => {
       location: 'L'.repeat(1024),
     }));
     globalThis.fetch = async () => jsonResponse(bulky);
-    const interaction = fakeInteraction();
+    const interaction = fakeInteraction(null, 'full');
 
     await command.execute(interaction);
 
@@ -148,26 +150,136 @@ describe('/events execute (next week)', () => {
   });
 });
 
-describe('%events prefix', () => {
-  test('posts the same payload as a normal reply without pinging the author', async () => {
-    const event = item(`${thisWeekDates[2]}T09:00:00+00:00`, 'This week event');
+describe('/events execute (compact view, the default)', () => {
+  test('without view replies with one compact embed per event, in date order, with thumbnails set (M11)', async () => {
+    const poster = 'https://example.com/poster.png';
+    const first = item(`${thisWeekDates[0]}T09:00:00+00:00`, 'Monday event', { poster });
+    const second = item(`${thisWeekDates[4]}T09:00:00+00:00`, 'Friday event', { poster });
+    globalThis.fetch = async () => jsonResponse([second, first]);
+    const interaction = fakeInteraction();
+
+    await command.execute(interaction);
+
+    assert.equal(interaction.calls[0][0], 'deferReply');
+    assert.equal(interaction.calls[1][0], 'editReply');
+    const reply = interaction.calls[1][1];
+    assert.ok(reply.content.startsWith('Events this week: '), reply.content);
+    assert.deepEqual(
+      reply.embeds.map((embed) => embed.toJSON().title),
+      ['Monday event', 'Friday event']
+    );
+    for (const embed of reply.embeds) {
+      const json = embed.toJSON();
+      assert.equal(json.thumbnail.url, poster);
+      assert.equal(json.image.url, 'attachment://spacer.png');
+    }
+    assert.equal(reply.files.length, 1);
+    assert.equal(reply.files[0].name, 'spacer.png');
+  });
+
+  test('12 compact events shows only the first 10 and notes the total', async () => {
+    const events = Array.from({ length: 12 }, (_, i) => item(`${thisWeekDates[i % 7]}T0${i % 9}:00:00+00:00`, `Event ${i}`));
+    globalThis.fetch = async () => jsonResponse(events);
+    const interaction = fakeInteraction();
+
+    await command.execute(interaction);
+
+    const reply = interaction.calls[1][1];
+    assert.equal(reply.embeds.length, 10);
+    assert.ok(reply.content.endsWith(' Showing the first 10 of 12.'), reply.content);
+    assert.equal(reply.files.length, 1);
+  });
+
+  test('week: next without view uses the next week title and stays compact', async () => {
+    const nextEvent = item(`${nextWeekDates[1]}T09:00:00+00:00`, 'Next week event');
+    globalThis.fetch = async () => jsonResponse([nextEvent]);
+    const interaction = fakeInteraction('next');
+
+    await command.execute(interaction);
+
+    const reply = interaction.calls[1][1];
+    assert.ok(reply.content.startsWith('Events next week: '), reply.content);
+    assert.equal(reply.files.length, 1);
+  });
+
+  test('an empty week without view gives the same "no events" message', async () => {
+    globalThis.fetch = async () => jsonResponse([]);
+    const interaction = fakeInteraction();
+
+    await command.execute(interaction);
+
+    assert.deepEqual(interaction.calls[1], ['editReply', { content: 'No events this week.' }]);
+  });
+});
+
+describe('%events prefix (compact view, the default)', () => {
+  test('"%events" without flags replies with a compact embed, thumbnail set and the spacer image', async () => {
+    const poster = 'https://example.com/poster.png';
+    const event = item(`${thisWeekDates[2]}T09:00:00+00:00`, 'This week event', { poster });
     globalThis.fetch = async () => jsonResponse([event]);
     const message = fakeMessage();
 
     await command.runPrefix(message, []);
 
-    assert.equal(message.calls.length, 1);
-    assert.ok(message.calls[0].content.startsWith('Events this week: '));
-    assert.equal(message.calls[0].embeds[0].toJSON().title, 'This week event');
+    assert.ok(message.calls[0].content.startsWith('Events this week: '), message.calls[0].content);
+    assert.equal(message.calls[0].embeds.length, 1);
+    const json = message.calls[0].embeds[0].toJSON();
+    assert.equal(json.title, 'This week event');
+    assert.equal(json.thumbnail.url, poster);
+    assert.equal(json.image.url, 'attachment://spacer.png');
+    assert.equal(message.calls[0].files.length, 1);
+    assert.equal(message.calls[0].files[0].name, 'spacer.png');
     assert.deepEqual(message.calls[0].allowedMentions, { repliedUser: false });
   });
 
-  test('"%events NEXT" is case-insensitive and shows next week', async () => {
+  test('"%events next" shows next week compact', async () => {
     const nextEvent = item(`${nextWeekDates[1]}T09:00:00+00:00`, 'Next week event');
     globalThis.fetch = async () => jsonResponse([nextEvent]);
     const message = fakeMessage();
 
-    await command.runPrefix(message, ['NEXT']);
+    await command.runPrefix(message, ['next']);
+
+    assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
+    assert.equal(message.calls[0].embeds[0].toJSON().image.url, 'attachment://spacer.png');
+    assert.equal(message.calls[0].files.length, 1);
+  });
+
+  test('"%events FULL next" switches to the full view, case-insensitive and order-independent', async () => {
+    const poster = 'https://example.com/poster.png';
+    const nextEvent = item(`${nextWeekDates[1]}T09:00:00+00:00`, 'Next week event', { poster });
+    globalThis.fetch = async () => jsonResponse([nextEvent]);
+    const message = fakeMessage();
+
+    await command.runPrefix(message, ['FULL', 'next']);
+
+    assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
+    assert.equal(message.calls[0].embeds[0].toJSON().image.url, poster);
+    assert.equal(message.calls[0].embeds[0].toJSON().thumbnail, undefined);
+    assert.equal(message.calls[0].files, undefined);
+  });
+});
+
+describe('%events prefix (full view)', () => {
+  test('"%events full" posts the full payload as a normal reply without pinging the author', async () => {
+    const event = item(`${thisWeekDates[2]}T09:00:00+00:00`, 'This week event');
+    globalThis.fetch = async () => jsonResponse([event]);
+    const message = fakeMessage();
+
+    await command.runPrefix(message, ['full']);
+
+    assert.equal(message.calls.length, 1);
+    assert.ok(message.calls[0].content.startsWith('Events this week: '));
+    assert.equal(message.calls[0].embeds[0].toJSON().title, 'This week event');
+    assert.equal(message.calls[0].files, undefined);
+    assert.deepEqual(message.calls[0].allowedMentions, { repliedUser: false });
+  });
+
+  test('"%events NEXT full" is case-insensitive and shows next week', async () => {
+    const nextEvent = item(`${nextWeekDates[1]}T09:00:00+00:00`, 'Next week event');
+    globalThis.fetch = async () => jsonResponse([nextEvent]);
+    const message = fakeMessage();
+
+    await command.runPrefix(message, ['NEXT', 'full']);
 
     assert.ok(message.calls[0].content.startsWith('Events next week: '));
     assert.equal(message.calls[0].embeds[0].toJSON().title, 'Next week event');
@@ -188,14 +300,14 @@ describe('%events prefix', () => {
 });
 
 describe('command registration', () => {
-  test('exposes /events with an optional week choice and the events prefix', () => {
+  test('exposes /events with optional week and view choices and the events prefix', () => {
     const json = command.data.toJSON();
     assert.equal(json.name, 'events');
-    assert.equal(json.options.length, 1);
-    const [option] = json.options;
-    assert.equal(option.name, 'week');
-    assert.equal(option.required, false);
-    assert.deepEqual(option.choices.map((c) => [c.name, c.value]), [['This week', 'this'], ['Next week', 'next']]);
+    assert.deepEqual(json.options.map((o) => [o.name, o.required]), [['week', false], ['view', false]]);
+
+    const [weekOption, viewOption] = json.options;
+    assert.deepEqual(weekOption.choices.map((c) => [c.name, c.value]), [['This week', 'this'], ['Next week', 'next']]);
+    assert.deepEqual(viewOption.choices.map((c) => [c.name, c.value]), [['Compact', 'compact'], ['Full', 'full']]);
     assert.equal(command.prefix, 'events');
   });
 });

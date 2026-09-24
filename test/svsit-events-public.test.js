@@ -1,6 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { fetchPublicEvents, buildEventCardEmbed } = require('../lib/svsit-events');
+const { fetchPublicEvents, buildEventCardEmbed, buildEventCompactEmbed, eventPageUrl } = require('../lib/svsit-events');
+const { SPACER, SPACER_URL } = require('../lib/spacer');
 
 const ID = 'e06acbfd-13d1-4002-9546-7066420762ef';
 
@@ -20,6 +21,17 @@ const baseItem = () => ({
   description: 'De eerste editie van Lets SIT.',
   poster: 'https://example.supabase.co/storage/v1/object/public/event-posters/poster.png',
   category: 'Social',
+});
+
+describe('SPACER', () => {
+  test('is a valid 78-byte PNG named spacer.png, served as an attachment URL', () => {
+    const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+    assert.equal(SPACER.buffer.length, 78);
+    assert.deepEqual([...SPACER.buffer.subarray(0, 8)], signature);
+    assert.equal(SPACER.name, 'spacer.png');
+    assert.equal(SPACER_URL, 'attachment://spacer.png');
+  });
 });
 
 describe('fetchPublicEvents', () => {
@@ -165,5 +177,97 @@ describe('buildEventCardEmbed', () => {
 
   test('picks the color for a known category, case-insensitively', () => {
     assert.equal(buildEventCardEmbed({ ...baseItem(), category: 'Code' }, { now: BEFORE }).toJSON().color, 0x22c55e);
+  });
+});
+
+describe('buildEventCompactEmbed', () => {
+  test('folds a newline in the name so the title stays on one line', () => {
+    const json = buildEventCompactEmbed({ ...baseItem(), name: 'Lets SIT\nzaalvoetbal' }, { now: BEFORE }).toJSON();
+    assert.equal(json.title, 'Lets SIT zaalvoetbal');
+  });
+
+  test('a location with markdown link syntax or newlines cannot inject a link or break the second line', () => {
+    const item1 = { ...baseItem(), location: '[Click here](https://evil.example.com)\r\nroom 2' };
+    const json = buildEventCompactEmbed(item1, { now: BEFORE }).toJSON();
+    const lines = json.description.split('\n');
+
+    assert.equal(lines.length, 2, json.description);
+    assert.ok(!json.description.includes(']('), json.description);
+    assert.equal(lines[1], '(Click here)(https://evil.example.com) room 2');
+
+    const card = buildEventCardEmbed(item1, { now: BEFORE }).toJSON();
+    assert.equal(card.fields.find((f) => f.name === 'Where').value, '(Click here)(https://evil.example.com) room 2');
+  });
+
+  test('maps title, url and color', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+
+    assert.equal(json.title, 'Lets SIT editie 1');
+    assert.equal(json.url, eventPageUrl(ID));
+    assert.equal(json.color, 0xf29e18);
+  });
+
+  test('falls back to the social colour for unknown or missing categories', () => {
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: 'impact' }, { now: BEFORE }).toJSON().color, 0xf29e18);
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: undefined }, { now: BEFORE }).toJSON().color, 0xf29e18);
+  });
+
+  test('picks the color for a known category, case-insensitively', () => {
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: 'Code' }, { now: BEFORE }).toJSON().color, 0x22c55e);
+  });
+
+  test('description is exactly two lines: the start timestamp, then the location', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(baseItem().date).getTime() / 1000);
+
+    assert.equal(json.description, `<t:${start}:f>\nUSC`);
+  });
+
+  test('falls back to TBA without a location, still on the second line', () => {
+    const json = buildEventCompactEmbed({ ...baseItem(), location: undefined }, { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(baseItem().date).getTime() / 1000);
+
+    assert.equal(json.description, `<t:${start}:f>\nTBA`);
+  });
+
+  test('truncates the title to 60 and the location to 60', () => {
+    const item1 = { ...baseItem(), name: 'N'.repeat(300), location: 'L'.repeat(300) };
+    const json = buildEventCompactEmbed(item1, { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(item1.date).getTime() / 1000);
+    const lines = json.description.split('\n');
+
+    assert.equal(json.title.length, 60);
+    assert.ok(json.title.endsWith('...'));
+    assert.equal(lines.length, 2, json.description);
+    assert.equal(lines[0], `<t:${start}:f>`);
+    assert.equal(lines[1].length, 60);
+    assert.ok(lines[1].endsWith('...'));
+  });
+
+  test('notes (ended) on the first line when the event has already ended, with and without dateEnd', () => {
+    assert.ok(!buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON().description.split('\n')[0].endsWith(' (ended)'));
+    assert.ok(buildEventCompactEmbed(baseItem(), { now: AFTER }).toJSON().description.split('\n')[0].endsWith(' (ended)'));
+
+    const noEnd = { ...baseItem(), dateEnd: undefined };
+    const justBefore = new Date('2026-09-30T16:59:00Z');
+    const justAfter = new Date('2026-09-30T17:01:00Z');
+    assert.ok(!buildEventCompactEmbed(noEnd, { now: justBefore }).toJSON().description.split('\n')[0].endsWith(' (ended)'));
+    assert.ok(buildEventCompactEmbed(noEnd, { now: justAfter }).toJSON().description.split('\n')[0].endsWith(' (ended)'));
+  });
+
+  test('sets the thumbnail when a poster is present, omits it otherwise', () => {
+    const withPoster = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+    assert.equal(withPoster.thumbnail.url, baseItem().poster);
+
+    const withoutPoster = buildEventCompactEmbed({ ...baseItem(), poster: undefined }, { now: BEFORE }).toJSON();
+    assert.equal(withoutPoster.thumbnail, undefined);
+  });
+
+  test('always sets the spacer as image (for equal card width), never fields or a footer', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+
+    assert.equal(json.image.url, SPACER_URL);
+    assert.equal(json.fields, undefined);
+    assert.equal(json.footer, undefined);
   });
 });

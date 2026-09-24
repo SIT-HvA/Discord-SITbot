@@ -107,3 +107,45 @@ Plain array, geen envelope. Bij een DB-fout antwoordt de route `[]` met status 5
 
 ### Constanten
 `MAX_EMBEDS = 10` (Discord), `CARD_DESCRIPTION_MAX = 300`, tijdzone `Europe/Amsterdam`, `weeks` alleen 0 of 1.
+
+## Compact view (M11, increment 5)
+
+### Structuur
+- `lib/svsit-events.js` krijgt `buildWeekListEmbed(items, { title, now }) -> EmbedBuilder`: 1 embed, `setTitle(title)`, kleur `CATEGORY_COLORS.social`, footer `svsit.nl`, description met per item een regel. Items zijn al gefilterd en gesorteerd door het command.
+- `scripts/events.js`: optie `view` (choices `Full` = `full`, `Compact` = `compact`, optional, default full), constante `VIEWS = { full, compact }`, `COMPACT_ARG = 'compact'`. `eventsReply(weekKey, view, now)`.
+
+### Regel per event
+`<t:${start}:f}  [${name}](${eventPageUrl(id)})  ${location || 'TBA'}` plus ` (ended)` als `hasEnded`. Naam afgekapt op 80 tekens (`LIST_NAME_MAX`), locatie op 60 (`LIST_LOCATION_MAX`). Vierkante haken in de naam worden vervangen door ronde, anders breekt de markdown-link. Regels gescheiden door `\n`.
+
+### Limiet
+`DESCRIPTION_LIMIT = 4096` (Discord). Regels toevoegen zolang totaal plus slotregel past; daarna slotregel `and ${rest} more on svsit.nl`. Bij 7 events van ~150 tekens is dat nooit nodig, de check is voor de zekerheid.
+
+### Command-flow (aanvulling)
+1. `view = getString('view') ?? 'full'`; prefix: argument `compact` (hoofdletterongevoelig) geeft compact, `next` blijft werken, volgorde vrij.
+2. Fetch, filter, sorteer en de lege melding zijn gelijk voor beide views.
+3. full: ongewijzigd (content-regel plus fitEmbeds). compact: `{ embeds: [buildWeekListEmbed(events, { title: 'Events this week: ' + weekLabel(dates), now })] }`, geen content.
+
+### Herzien (T014): compact als kleine embed per event
+Vervangt de lijst-embed hierboven. `buildWeekListEmbed`, `weekListLine`, `plainText`, `LIST_NAME_MAX`, `LIST_LOCATION_MAX` en `DESCRIPTION_LIMIT` gaan weg (geen dode code).
+- `lib/svsit-events.js`: `buildEventCompactEmbed(item, { now }) -> EmbedBuilder`:
+
+| Embed | Bron |
+|---|---|
+| title | name afgekapt op 256 |
+| url | `https://svsit.nl/events/<id>` |
+| color | categoriekleur, default social |
+| description | `<t:start:f>  ` plus location (of `TBA`, afgekapt op `COMPACT_LOCATION_MAX = 100`) plus ` (ended)` als hasEnded |
+| thumbnail | poster als aanwezig |
+| geen fields, geen image, geen footer | |
+
+- `scripts/events.js`: `const buildEmbed = view === VIEWS.compact ? buildEventCompactEmbed : buildEventCardEmbed;` en daarna dezelfde `fitEmbeds`, content-regel en noot als full. De aparte compact-tak met `buildWeekListEmbed` verdwijnt.
+
+### Gelijke grootte (T016)
+- `lib/spacer.js`: `SPACER = { name: 'spacer.png', buffer }` met een transparante PNG van 400x1 px als hardcoded base64 (78 bytes, gegenereerd met node zlib, geen dependency). Export ook `SPACER_URL = 'attachment://spacer.png'`.
+- `buildEventCompactEmbed`: titel afgekapt op `COMPACT_TITLE_MAX = 60`, description wordt 2 regels: `<t:start:f>${ended}` en daaronder `location` (plainText, afgekapt op `COMPACT_LOCATION_MAX = 60`). `setImage(SPACER_URL)` op elke compact kaart: Discord rekt de embed dan tot de volle breedte, de afbeelding zelf is 1 px hoog en onzichtbaar. Thumbnail blijft de poster.
+- `scripts/events.js`: bij compact krijgt de payload `files: [new AttachmentBuilder(SPACER.buffer, { name: SPACER.name })]` zodat `attachment://spacer.png` in alle embeds van het bericht resolvet. Full ongewijzigd (geen files). Prefix hetzelfde via message.reply.
+- fitEmbeds: image en thumbnail tellen niet mee in embed.length, dus ongewijzigd.
+
+### Default compact (T018)
+- `scripts/events.js`: `eventsReply(weekKey, view = VIEWS.compact, ...)`, slash `getString('view') ?? VIEWS.compact`, choices in volgorde Compact, Full. Prefix: `FULL_ARG = 'full'` vervangt `COMPACT_ARG`; `flags.includes(FULL_ARG)` geeft full, anders compact. Optie-description: `Compact cards (default) or one full embed per event.`
+- Geen wijziging in lib/.
