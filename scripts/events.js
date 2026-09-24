@@ -1,5 +1,5 @@
 const { InteractionContextType, MessageFlags, SlashCommandBuilder } = require('discord.js');
-const { fetchPublicEvents, buildEventCardEmbed, buildWeekListEmbed } = require('../lib/svsit-events');
+const { fetchPublicEvents, buildEventCardEmbed, buildEventCompactEmbed } = require('../lib/svsit-events');
 const { weekDates, weekLabel, localDate } = require('../lib/week');
 
 const MESSAGES = {
@@ -48,12 +48,8 @@ async function eventsReply(weekKey, view = VIEWS.full, now = new Date()) {
   const label = WEEK_LABELS[weekKey];
   if (events.length === 0) return { content: `No events ${label}.` };
 
-  if (view === VIEWS.compact) {
-    const title = `Events ${label}: ${weekLabel(dates)}`;
-    return { embeds: [buildWeekListEmbed(events, { title, now })] };
-  }
-
-  const embeds = fitEmbeds(events.map((event) => buildEventCardEmbed(event, { now })));
+  const buildEmbed = view === VIEWS.compact ? buildEventCompactEmbed : buildEventCardEmbed;
+  const embeds = fitEmbeds(events.map((event) => buildEmbed(event, { now })));
   const note = embeds.length < events.length ? ` Showing the first ${embeds.length} of ${events.length}.` : '';
   return { content: `Events ${label}: ${weekLabel(dates)}${note}`, embeds };
 }

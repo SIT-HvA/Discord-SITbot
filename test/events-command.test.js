@@ -38,12 +38,13 @@ const nextWeekDates = weekDates(new Date(), { weeks: 1 });
 let idCounter = 0;
 const nextId = () => `e06acbfd-13d1-4002-9546-${String(idCounter++).padStart(12, '0')}`;
 
-const item = (date, name) => ({
+const item = (date, name, extra = {}) => ({
   id: nextId(),
   name,
   date,
   location: 'USC',
   category: 'Social',
+  ...extra,
 });
 
 describe('/events execute (this week)', () => {
@@ -149,9 +150,10 @@ describe('/events execute (next week)', () => {
 });
 
 describe('/events execute (compact view)', () => {
-  test('view: compact replies with a single embed, no content, one line per event, in date order (M11)', async () => {
-    const first = item(`${thisWeekDates[0]}T09:00:00+00:00`, 'Monday event');
-    const second = item(`${thisWeekDates[4]}T09:00:00+00:00`, 'Friday event');
+  test('view: compact replies with one compact embed per event, in date order, with thumbnails set (M11)', async () => {
+    const poster = 'https://example.com/poster.png';
+    const first = item(`${thisWeekDates[0]}T09:00:00+00:00`, 'Monday event', { poster });
+    const second = item(`${thisWeekDates[4]}T09:00:00+00:00`, 'Friday event', { poster });
     globalThis.fetch = async () => jsonResponse([second, first]);
     const interaction = fakeInteraction(null, 'compact');
 
@@ -160,13 +162,28 @@ describe('/events execute (compact view)', () => {
     assert.equal(interaction.calls[0][0], 'deferReply');
     assert.equal(interaction.calls[1][0], 'editReply');
     const reply = interaction.calls[1][1];
-    assert.equal(reply.content, undefined);
-    assert.equal(reply.embeds.length, 1);
+    assert.ok(reply.content.startsWith('Events this week: '), reply.content);
+    assert.deepEqual(
+      reply.embeds.map((embed) => embed.toJSON().title),
+      ['Monday event', 'Friday event']
+    );
+    for (const embed of reply.embeds) {
+      const json = embed.toJSON();
+      assert.equal(json.thumbnail.url, poster);
+      assert.equal(json.image, undefined);
+    }
+  });
 
-    const json = reply.embeds[0].toJSON();
-    assert.ok(json.title.startsWith('Events this week: '), json.title);
-    assert.equal(json.description.split('\n').length, 2);
-    assert.ok(json.description.indexOf('Monday event') < json.description.indexOf('Friday event'), json.description);
+  test('12 compact events shows only the first 10 and notes the total', async () => {
+    const events = Array.from({ length: 12 }, (_, i) => item(`${thisWeekDates[i % 7]}T0${i % 9}:00:00+00:00`, `Event ${i}`));
+    globalThis.fetch = async () => jsonResponse(events);
+    const interaction = fakeInteraction(null, 'compact');
+
+    await command.execute(interaction);
+
+    const reply = interaction.calls[1][1];
+    assert.equal(reply.embeds.length, 10);
+    assert.ok(reply.content.endsWith(' Showing the first 10 of 12.'), reply.content);
   });
 
   test('view: compact with week: next uses the next week title', async () => {
@@ -176,8 +193,8 @@ describe('/events execute (compact view)', () => {
 
     await command.execute(interaction);
 
-    const json = interaction.calls[1][1].embeds[0].toJSON();
-    assert.ok(json.title.startsWith('Events next week: '), json.title);
+    const reply = interaction.calls[1][1];
+    assert.ok(reply.content.startsWith('Events next week: '), reply.content);
   });
 
   test('view: compact with an empty week gives the same "no events" message', async () => {
@@ -191,16 +208,20 @@ describe('/events execute (compact view)', () => {
 });
 
 describe('%events prefix (compact view)', () => {
-  test('"%events compact" replies with a single embed', async () => {
-    const event = item(`${thisWeekDates[2]}T09:00:00+00:00`, 'This week event');
+  test('"%events compact" replies with a compact embed, thumbnail set and no image', async () => {
+    const poster = 'https://example.com/poster.png';
+    const event = item(`${thisWeekDates[2]}T09:00:00+00:00`, 'This week event', { poster });
     globalThis.fetch = async () => jsonResponse([event]);
     const message = fakeMessage();
 
     await command.runPrefix(message, ['compact']);
 
-    assert.equal(message.calls[0].content, undefined);
+    assert.ok(message.calls[0].content.startsWith('Events this week: '), message.calls[0].content);
     assert.equal(message.calls[0].embeds.length, 1);
-    assert.ok(message.calls[0].embeds[0].toJSON().title.startsWith('Events this week: '));
+    const json = message.calls[0].embeds[0].toJSON();
+    assert.equal(json.title, 'This week event');
+    assert.equal(json.thumbnail.url, poster);
+    assert.equal(json.image, undefined);
     assert.deepEqual(message.calls[0].allowedMentions, { repliedUser: false });
   });
 
@@ -211,8 +232,8 @@ describe('%events prefix (compact view)', () => {
 
     await command.runPrefix(message, ['next', 'compact']);
 
-    const json = message.calls[0].embeds[0].toJSON();
-    assert.ok(json.title.startsWith('Events next week: '), json.title);
+    assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
+    assert.equal(message.calls[0].embeds[0].toJSON().image, undefined);
   });
 
   test('"%events COMPACT next" is case-insensitive and order-independent', async () => {
@@ -222,8 +243,8 @@ describe('%events prefix (compact view)', () => {
 
     await command.runPrefix(message, ['COMPACT', 'next']);
 
-    const json = message.calls[0].embeds[0].toJSON();
-    assert.ok(json.title.startsWith('Events next week: '), json.title);
+    assert.ok(message.calls[0].content.startsWith('Events next week: '), message.calls[0].content);
+    assert.equal(message.calls[0].embeds[0].toJSON().image, undefined);
   });
 });
 

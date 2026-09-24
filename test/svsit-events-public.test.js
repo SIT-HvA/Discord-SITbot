@@ -1,6 +1,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { fetchPublicEvents, buildEventCardEmbed, buildWeekListEmbed, eventPageUrl } = require('../lib/svsit-events');
+const { fetchPublicEvents, buildEventCardEmbed, buildEventCompactEmbed, eventPageUrl } = require('../lib/svsit-events');
 
 const ID = 'e06acbfd-13d1-4002-9546-7066420762ef';
 
@@ -168,100 +168,88 @@ describe('buildEventCardEmbed', () => {
   });
 });
 
-describe('buildWeekListEmbed', () => {
-  test('sets title, social color and svsit.nl footer, no image and no fields', () => {
-    const json = buildWeekListEmbed([], { title: 'Events this week: 22 Sep to 28 Sep', now: BEFORE }).toJSON();
+describe('buildEventCompactEmbed', () => {
+  test('a location with markdown link syntax or newlines cannot inject a link or break the line', () => {
+    const item1 = { ...baseItem(), location: '[Click here](https://evil.example.com)\r\nroom 2' };
+    const json = buildEventCompactEmbed(item1, { now: BEFORE }).toJSON();
 
-    assert.equal(json.title, 'Events this week: 22 Sep to 28 Sep');
+    assert.equal(json.description.split('\n').length, 1, json.description);
+    assert.ok(!json.description.includes(']('), json.description);
+    assert.ok(json.description.endsWith('(Click here)(https://evil.example.com) room 2'), json.description);
+
+    const card = buildEventCardEmbed(item1, { now: BEFORE }).toJSON();
+    assert.equal(card.fields.find((f) => f.name === 'Where').value, '(Click here)(https://evil.example.com) room 2');
+  });
+
+  test('maps title, url and color', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+
+    assert.equal(json.title, 'Lets SIT editie 1');
+    assert.equal(json.url, eventPageUrl(ID));
     assert.equal(json.color, 0xf29e18);
-    assert.equal(json.footer.text, 'svsit.nl');
-    assert.equal(json.image, undefined);
-    assert.equal(json.fields, undefined);
   });
 
-  test('one line per item with timestamp, link and location, in the given order', () => {
-    const first = { ...baseItem(), name: 'Alpha', date: '2026-09-30T09:00:00+00:00', dateEnd: undefined, location: 'USC' };
-    const second = {
-      ...baseItem(),
-      id: 'e06acbfd-13d1-4002-9546-000000000002',
-      name: 'Beta',
-      date: '2026-10-01T09:00:00+00:00',
-      dateEnd: undefined,
-      location: 'Wibautstraat',
-    };
-    const json = buildWeekListEmbed([first, second], { title: 't', now: BEFORE }).toJSON();
-
-    const startA = Math.floor(new Date(first.date).getTime() / 1000);
-    const startB = Math.floor(new Date(second.date).getTime() / 1000);
-    assert.equal(
-      json.description,
-      `<t:${startA}:f>  [Alpha](${eventPageUrl(first.id)})  USC\n<t:${startB}:f>  [Beta](${eventPageUrl(second.id)})  Wibautstraat`
-    );
+  test('falls back to the social colour for unknown or missing categories', () => {
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: 'impact' }, { now: BEFORE }).toJSON().color, 0xf29e18);
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: undefined }, { now: BEFORE }).toJSON().color, 0xf29e18);
   });
 
-  test('appends (ended) for events that already ended', () => {
-    const item1 = { ...baseItem(), name: 'Old', dateEnd: undefined };
-    const notEnded = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
-    const ended = buildWeekListEmbed([item1], { title: 't', now: AFTER }).toJSON().description;
+  test('picks the color for a known category, case-insensitively', () => {
+    assert.equal(buildEventCompactEmbed({ ...baseItem(), category: 'Code' }, { now: BEFORE }).toJSON().color, 0x22c55e);
+  });
 
-    assert.ok(!notEnded.endsWith(' (ended)'), notEnded);
-    assert.ok(ended.endsWith(' (ended)'), ended);
+  test('description is the start timestamp and the location', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(baseItem().date).getTime() / 1000);
+
+    assert.equal(json.description, `<t:${start}:f>  USC`);
   });
 
   test('falls back to TBA without a location', () => {
-    const item1 = { ...baseItem(), location: undefined };
-    const json = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON();
-    assert.ok(json.description.includes('TBA'), json.description);
+    const json = buildEventCompactEmbed({ ...baseItem(), location: undefined }, { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(baseItem().date).getTime() / 1000);
+
+    assert.equal(json.description, `<t:${start}:f>  TBA`);
   });
 
-  test('truncates name to 80 and location to 60, replacing square brackets with round ones', () => {
-    const item1 = { ...baseItem(), name: `[Big] Event ${'N'.repeat(100)}`, location: 'L'.repeat(100) };
-    const line = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
+  test('truncates the location to 100 and the title to 256', () => {
+    const item1 = { ...baseItem(), name: 'N'.repeat(300), location: 'L'.repeat(300) };
+    const json = buildEventCompactEmbed(item1, { now: BEFORE }).toJSON();
+    const start = Math.floor(new Date(item1.date).getTime() / 1000);
+    const prefix = `<t:${start}:f>  `;
 
-    const linkMatch = line.match(/^<t:\d+:f>  \[(.*)\]\(/);
-    assert.ok(linkMatch, line);
-    const linkedName = linkMatch[1];
-    assert.ok(!linkedName.includes('['), linkedName);
-    assert.ok(!linkedName.includes(']'), linkedName);
-    assert.ok(linkedName.startsWith('(Big) Event'), linkedName);
-    assert.equal(linkedName.length, 80);
-
-    const afterUrl = line.split(')  ')[1];
-    assert.equal(afterUrl.length, 60);
+    assert.equal(json.title.length, 256);
+    assert.ok(json.title.endsWith('...'));
+    assert.ok(json.description.startsWith(prefix), json.description);
+    const location = json.description.slice(prefix.length);
+    assert.equal(location.length, 100);
+    assert.ok(location.endsWith('...'));
   });
 
-  test('a location with markdown link syntax or newlines cannot inject a link or break the line', () => {
-    const item1 = {
-      ...baseItem(),
-      name: 'Normal\nevent',
-      location: '[Click here](https://evil.example.com)\r\nroom 2',
-    };
-    const line = buildWeekListEmbed([item1], { title: 't', now: BEFORE }).toJSON().description;
+  test('notes (ended) when the event has already ended, with and without dateEnd', () => {
+    assert.ok(!buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON().description.endsWith(' (ended)'));
+    assert.ok(buildEventCompactEmbed(baseItem(), { now: AFTER }).toJSON().description.endsWith(' (ended)'));
 
-    assert.equal(line.split('\n').length, 1, line);
-    assert.equal((line.match(/\]\(/g) || []).length, 1, line);
-    assert.ok(line.includes('[Normal event](https://svsit.nl/events/'), line);
-    assert.ok(line.endsWith('(Click here)(https://evil.example.com) room 2'), line);
+    const noEnd = { ...baseItem(), dateEnd: undefined };
+    const justBefore = new Date('2026-09-30T16:59:00Z');
+    const justAfter = new Date('2026-09-30T17:01:00Z');
+    assert.ok(!buildEventCompactEmbed(noEnd, { now: justBefore }).toJSON().description.endsWith(' (ended)'));
+    assert.ok(buildEventCompactEmbed(noEnd, { now: justAfter }).toJSON().description.endsWith(' (ended)'));
   });
 
-  test('keeps items in the order given, does not re-sort', () => {
-    const later = { ...baseItem(), id: 'e06acbfd-13d1-4002-9546-000000000003', name: 'Later', date: '2026-10-05T09:00:00+00:00' };
-    const earlier = { ...baseItem(), id: 'e06acbfd-13d1-4002-9546-000000000004', name: 'Earlier', date: '2026-09-25T09:00:00+00:00' };
-    const json = buildWeekListEmbed([later, earlier], { title: 't', now: BEFORE }).toJSON();
+  test('sets the thumbnail when a poster is present, omits it otherwise', () => {
+    const withPoster = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
+    assert.equal(withPoster.thumbnail.url, baseItem().poster);
 
-    assert.ok(json.description.indexOf('Later') < json.description.indexOf('Earlier'), json.description);
+    const withoutPoster = buildEventCompactEmbed({ ...baseItem(), poster: undefined }, { now: BEFORE }).toJSON();
+    assert.equal(withoutPoster.thumbnail, undefined);
   });
 
-  test('keeps the description under 4096 with a trailing "more" line when 100 long items do not all fit', () => {
-    const items = Array.from({ length: 100 }, (_, i) => ({
-      ...baseItem(),
-      id: `e06acbfd-13d1-4002-9546-${String(i).padStart(12, '0')}`,
-      name: 'N'.repeat(80),
-      location: 'L'.repeat(60),
-    }));
-    const json = buildWeekListEmbed(items, { title: 't', now: BEFORE }).toJSON();
+  test('never sets an image, fields or a footer', () => {
+    const json = buildEventCompactEmbed(baseItem(), { now: BEFORE }).toJSON();
 
-    assert.ok(json.description.length <= 4096, json.description.length);
-    assert.ok(/and \d+ more on svsit\.nl$/.test(json.description), json.description);
+    assert.equal(json.image, undefined);
+    assert.equal(json.fields, undefined);
+    assert.equal(json.footer, undefined);
   });
 });
