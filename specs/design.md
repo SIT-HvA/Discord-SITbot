@@ -107,3 +107,20 @@ Plain array, geen envelope. Bij een DB-fout antwoordt de route `[]` met status 5
 
 ### Constanten
 `MAX_EMBEDS = 10` (Discord), `CARD_DESCRIPTION_MAX = 300`, tijdzone `Europe/Amsterdam`, `weeks` alleen 0 of 1.
+
+## Compact view (M11, increment 5)
+
+### Structuur
+- `lib/svsit-events.js` krijgt `buildWeekListEmbed(items, { title, now }) -> EmbedBuilder`: 1 embed, `setTitle(title)`, kleur `CATEGORY_COLORS.social`, footer `svsit.nl`, description met per item een regel. Items zijn al gefilterd en gesorteerd door het command.
+- `scripts/events.js`: optie `view` (choices `Full` = `full`, `Compact` = `compact`, optional, default full), constante `VIEWS = { full, compact }`, `COMPACT_ARG = 'compact'`. `eventsReply(weekKey, view, now)`.
+
+### Regel per event
+`<t:${start}:f}  [${name}](${eventPageUrl(id)})  ${location || 'TBA'}` plus ` (ended)` als `hasEnded`. Naam afgekapt op 80 tekens (`LIST_NAME_MAX`), locatie op 60 (`LIST_LOCATION_MAX`). Vierkante haken in de naam worden vervangen door ronde, anders breekt de markdown-link. Regels gescheiden door `\n`.
+
+### Limiet
+`DESCRIPTION_LIMIT = 4096` (Discord). Regels toevoegen zolang totaal plus slotregel past; daarna slotregel `and ${rest} more on svsit.nl`. Bij 7 events van ~150 tekens is dat nooit nodig, de check is voor de zekerheid.
+
+### Command-flow (aanvulling)
+1. `view = getString('view') ?? 'full'`; prefix: argument `compact` (hoofdletterongevoelig) geeft compact, `next` blijft werken, volgorde vrij.
+2. Fetch, filter, sorteer en de lege melding zijn gelijk voor beide views.
+3. full: ongewijzigd (content-regel plus fitEmbeds). compact: `{ embeds: [buildWeekListEmbed(events, { title: 'Events this week: ' + weekLabel(dates), now })] }`, geen content.

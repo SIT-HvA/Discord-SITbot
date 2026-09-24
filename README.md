@@ -36,7 +36,7 @@ A Discord bot built with [discord.js](https://discord.js.org/) v14 and Node.js.
 | `/clear-lid` | Removes the **lid** role from every member who has it. Asks for confirmation first, and snapshots who had it. |
 | `/restore-lid` | Puts the role back on everyone a `/clear-lid` run removed it from. Asks for confirmation first. |
 | `/event` | Shows an event from svsit.nl as an embed. Paste the event link as `url`, pick `language` to translate the description, set `announce` to ping @everyone (needs Mention Everyone). Also `%event <link> [nl\|en] [announce]`. |
-| `/events` | Lists the svsit.nl events of this week, one embed per event with the poster and a link to the event page. Pick `week` for next week. Also `%events [next]`. |
+| `/events` | Lists the svsit.nl events of this week, one embed per event with the poster and a link to the event page. Pick `week` for next week and `view:Compact` for a one-embed list. Also `%events [next] [compact]`. |
 
 Commands live in [`scripts/`](scripts/), one file per command, each exporting
 `data` (a `SlashCommandBuilder`) and `execute(interaction)`. Add a file, run
@@ -127,6 +127,13 @@ allows 10 embeds and 6000 characters per message, so a busy week shows the
 first events that fit and says how many there are in total. If svsit.nl does
 not answer within 8 seconds the error is ephemeral. The prefix form is
 `%events` or `%events next`, posted publicly.
+
+Pick `view:Compact` for a single embed instead: one line per event with the
+start time as a Discord timestamp, the title linking to the event page and the
+location, plus `(ended)` for events that already happened. No posters or
+descriptions, handy for a quick overview in a busy channel. `view:Full` is the
+default described above. The prefix form is `%events compact`, combinable with
+`next` in any order.
 
 The data comes from the public `GET /api/events/public` list, the same
 `SVSIT_BASE_URL` override applies.

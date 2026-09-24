@@ -20,3 +20,6 @@ Bron: `GET https://svsit.nl/api/events/public` (plain array, geen envelope, live
 id, name, date, dateEnd, location, description, poster, capacity, priceMembers, priceNonMembers, isPaid, status
 next|done|tba, category Social|Code|Career|Game, color). `poster` is gelijk aan `poster_url` van het losse event.
 Alle 7 komende events hebben een poster. Een request volstaat, geen per-event fetch nodig.
+
+## Increment 5 (2026-09-24): compact view
+Vraag Thijmen: "maak ook een compact en full view. we hebben nu full-view gemaakt, maar maak nu ook een compact lijstje met de events". Full blijft de default, compact is 1 embed met een regel per event.
